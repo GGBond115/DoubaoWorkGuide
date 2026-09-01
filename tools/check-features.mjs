@@ -1,5 +1,6 @@
 /* 搜索与继续阅读的交互自检（开发用）：node tools/check-features.mjs */
 
+import assert from "node:assert/strict";
 import puppeteer from "puppeteer-core";
 
 const CHROME =
@@ -14,6 +15,8 @@ page.on("pageerror", (err) => console.log("PAGE ERROR:", err.message));
 
 await page.goto(`${ORIGIN}/#/`, { waitUntil: "networkidle0" });
 await page.waitForSelector("#app:not([hidden])");
+await page.evaluate(() => localStorage.clear());
+await page.reload({ waitUntil: "networkidle0" });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // 1. ⌘K 打开搜索，输入关键词
@@ -22,6 +25,7 @@ await page.keyboard.press("k");
 await page.keyboard.up("Meta");
 await wait(200);
 console.log("搜索打开:", await page.$eval("#search", (el) => el.dataset.open));
+assert.equal(await page.$eval("#search", (el) => el.dataset.open), "true", "⌘K 应打开搜索");
 
 await page.type("#search-input", "定时任务");
 await wait(200);
@@ -30,6 +34,7 @@ const results = await page.$$eval("#search-results .search__item", (items) =>
 );
 console.log("结果条数与前三条:", results.length ? results : "无");
 console.log("提示行:", await page.$eval("#search-hint", (el) => el.textContent));
+assert.ok(results.length >= 2, "定时任务应返回至少两条可选择结果");
 
 // 2. 方向键 + 回车打开第二条
 await page.keyboard.press("ArrowDown");
@@ -37,12 +42,15 @@ await page.keyboard.press("Enter");
 await wait(500);
 console.log("回车后路由:", await page.evaluate(() => location.hash));
 console.log("搜索已关:", await page.$eval("#search", (el) => el.dataset.open));
+assert.equal(await page.$eval("#search", (el) => el.dataset.open), "false", "打开结果后应关闭搜索");
 
 // 3. 滚一段距离，回封面看「继续阅读」
 await page.evaluate(() => window.scrollTo(0, 1800));
 await wait(900); // 等 600ms 的记录节流
 const saved = await page.evaluate(() => localStorage.getItem("dwg.resume"));
 console.log("记录的位置:", saved);
+const savedPosition = JSON.parse(saved);
+assert.ok(savedPosition.y > 500, "正文滚动位置应被记录");
 
 await page.goto(`${ORIGIN}/#/`, { waitUntil: "networkidle0" });
 await wait(300);
@@ -51,12 +59,25 @@ console.log("封面继续阅读:", resume);
 
 // 4. 点继续阅读，验证滚动位置恢复
 await page.click("[data-resume]");
-await wait(600);
-console.log("恢复后 scrollY:", await page.evaluate(() => window.scrollY));
+await page.waitForFunction(
+  (token) => location.hash === `#/p/${token.replace(/^doc-/, "")}`,
+  { timeout: 3000 },
+  savedPosition.token
+);
+await wait(400);
+const restoredY = await page.evaluate(() => window.scrollY);
+const restoredMax = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight);
+console.log("恢复后 scrollY:", restoredY);
+assert.ok(
+  restoredY >= Math.min(savedPosition.y, restoredMax) * 0.8,
+  `继续阅读应恢复到保存位置的 80% 以后，目标 ${Math.min(savedPosition.y, restoredMax)}px，实际为 ${restoredY}px`
+);
 
 // 5. 目录页进度行
 await page.goto(`${ORIGIN}/#/toc`, { waitUntil: "networkidle0" });
 await wait(300);
 console.log("目录页首行:", await page.$eval(".toc .body-text", (el) => el.textContent.replace(/\s+/g, " ").trim()));
+
+console.log(JSON.stringify({ status: "PASS", savedPosition, restoredY }, null, 2));
 
 await browser.close();

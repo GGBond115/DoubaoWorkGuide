@@ -49,6 +49,85 @@
 }
 
 /* ------------------------------------------------------------
+   内容图框：把长文从页面背景中提出来，像一张夹在蓝图桌上的工作记录。
+   左右规线负责划定阅读边界，四角短线和极淡网格只帮助辨认层级。
+   ------------------------------------------------------------ */
+
+.article__body-frame {
+  position: relative;
+  min-width: 0;
+  padding: clamp(36px, 5vw, 56px);
+  border: 1px solid var(--hairline);
+  border-inline-color: color-mix(in srgb, var(--brand-blue) 24%, var(--hairline));
+  background-color: color-mix(in srgb, var(--surface) 97%, var(--brand-cyan));
+  background-image: linear-gradient(
+      color-mix(in srgb, var(--brand-blue) 2.5%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--brand-blue) 2.5%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 32px 32px;
+}
+
+.article__body-frame::before,
+.article__body-frame::after {
+  content: "";
+  position: absolute;
+  left: -1px;
+  width: 14px;
+  height: 14px;
+  border-left: 2px solid color-mix(in srgb, var(--brand-blue) 62%, transparent);
+  pointer-events: none;
+}
+
+.article__body-frame::before {
+  top: -1px;
+  border-top: 2px solid color-mix(in srgb, var(--brand-blue) 62%, transparent);
+}
+
+.article__body-frame::after {
+  bottom: -1px;
+  border-bottom: 2px solid color-mix(in srgb, var(--brand-blue) 62%, transparent);
+}
+
+.article__body-label {
+  position: absolute;
+  top: 0;
+  right: clamp(20px, 4vw, 40px);
+  padding: 0 var(--s-10);
+  background: var(--canvas);
+  color: var(--ink-faded);
+  font-size: 10px;
+  font-weight: var(--w-medium);
+  line-height: 1;
+  letter-spacing: 0.14em;
+  transform: translateY(-50%);
+}
+
+.article__body-frame--overview {
+  padding-top: var(--s-48);
+}
+
+@media (max-width: 720px) {
+  .article__body-frame {
+    margin-inline: -4px;
+    padding: 36px 18px 32px;
+    background-size: 24px 24px;
+  }
+
+  .article__body-label {
+    right: 14px;
+    max-width: calc(100% - 32px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* ------------------------------------------------------------
    本页小目录：长文的段落索引，一列安静的 14px 链接
    ------------------------------------------------------------ */
 
@@ -449,6 +528,7 @@ details[open] > .rail__sum .rail__chev {
   font-weight: var(--w-regular);
   line-height: var(--lh-body);
   color: var(--black);
+  counter-reset: prose-section;
 }
 
 /* 文字与截图、表格同一条宽度线（--measure 目前为 none，留着这组
@@ -489,6 +569,8 @@ details[open] > .rail__sum .rail__chev {
 
 /* 二级：16px / 600 charcoal，靠 64px 留白分段 */
 .prose h2 {
+  position: relative;
+  counter-increment: prose-section;
   margin-top: var(--s-64);
   margin-bottom: var(--s-12);
   font-size: var(--t-body);
@@ -496,6 +578,20 @@ details[open] > .rail__sum .rail__chev {
   line-height: var(--lh-body);
   color: var(--ink);
   scroll-margin-top: var(--s-32);
+  padding-left: 2.75rem;
+}
+
+.prose h2::before {
+  content: counter(prose-section, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: 0.05em;
+  width: 2rem;
+  color: var(--brand-blue);
+  font-family: var(--font-mono);
+  font-size: var(--t-caption);
+  font-weight: var(--w-medium);
+  letter-spacing: 0.04em;
 }
 
 /* 三级：同字号，只降字重与亮度 */

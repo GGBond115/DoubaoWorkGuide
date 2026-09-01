@@ -274,9 +274,9 @@
 }
 
 /* ------------------------------------------------------------
-   书封：首页（#/）是满屏品牌蓝的独立「蓝皮书封面」，
+   书封：首页（#/）是低饱和 Logo 蓝灰的独立「蓝皮书封面」，
    「开始阅读」跳到内页封面（#/intro），不与白纸内页同屏。
-   用工程蓝图纸的语言：满屏蓝 + 淡白网格 + 白描边元素，
+   用工程蓝图纸的语言：墨蓝渐变 + 淡蓝网格 + 柔白描边元素，
    形状沿用站内的胶囊语言，不引入新的圆角与彩色
    ------------------------------------------------------------ */
 
@@ -288,7 +288,7 @@ body.is-home .masthead {
 .bookcover :is(a, button):focus-visible,
 .lp__cta :is(a, button):focus-visible,
 .lp__foot :is(a, button):focus-visible {
-  outline: 2px solid #fff;
+  outline: 2px solid var(--cover-foreground);
   outline-offset: 3px;
 }
 
@@ -304,8 +304,26 @@ body.is-home .view {
   min-height: 100svh;
   padding: 28px var(--pad-x) 36px;
   overflow: hidden; /* 视差网格出血 60px，裁掉 */
-  background-color: var(--brand-blue);
-  color: #fff;
+  background-color: var(--cover-blue);
+  background-image: radial-gradient(
+      circle at 18% 16%,
+      color-mix(in srgb, var(--cover-highlight) 58%, transparent) 0%,
+      color-mix(in srgb, var(--cover-blue-light) 38%, transparent) 18%,
+      transparent 42%
+    ),
+    radial-gradient(
+      circle at 84% 86%,
+      color-mix(in srgb, var(--cover-highlight) 38%, transparent) 0%,
+      color-mix(in srgb, var(--cover-blue-tail) 32%, transparent) 20%,
+      transparent 46%
+    ),
+    linear-gradient(
+      118deg,
+      var(--cover-blue) 0%,
+      var(--cover-blue-deep) 55%,
+      var(--cover-blue) 100%
+    );
+  color: var(--cover-foreground);
   transform-origin: left center; /* 书脊在左 */
   backface-visibility: hidden;
 }
@@ -314,8 +332,15 @@ body.is-home .view {
 .bookcover__grid {
   position: absolute;
   inset: -60px;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+  background-image: linear-gradient(
+      color-mix(in srgb, var(--cover-cyan) 4.5%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--cover-cyan) 4.5%, transparent) 1px,
+      transparent 1px
+    );
   background-size: 44px 44px;
   animation: bc-fade 1100ms var(--ease-out) backwards;
   pointer-events: none;
@@ -328,7 +353,11 @@ body.is-home .view {
   left: 0;
   width: 640px;
   height: 640px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0) 62%);
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--cover-cyan) 10%, transparent) 0%,
+    transparent 62%
+  );
   opacity: 0;
   transition: opacity 600ms var(--ease);
   pointer-events: none;
@@ -357,7 +386,7 @@ body.is-home .view {
   font-size: 12px;
   letter-spacing: 0.14em;
   white-space: nowrap;
-  color: rgba(255, 255, 255, 0.15);
+  color: rgba(244, 248, 252, 0.14);
   animation: bc-fade 600ms var(--ease-out) both;
   animation-delay: calc(950ms + var(--i) * 80ms);
 }
@@ -378,8 +407,8 @@ body.is-home .view {
   align-items: center;
   justify-content: center;
   width: 48px;
-  background: rgba(0, 0, 24, 0.22);
-  border-right: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(9, 27, 49, 0.26);
+  border-right: 1px solid rgba(244, 248, 252, 0.14);
   animation: bc-fade 900ms var(--ease-out) 150ms backwards;
 }
 
@@ -389,7 +418,7 @@ body.is-home .view {
   font-weight: var(--w-medium);
   letter-spacing: 0.3em;
   white-space: nowrap;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(244, 248, 252, 0.58);
 }
 
 .bookcover__bar,
@@ -411,7 +440,7 @@ body.is-home .view {
 .bookcover__reg::after {
   content: "";
   position: absolute;
-  background: rgba(255, 255, 255, 0.34);
+  background: color-mix(in srgb, var(--cover-cyan) 34%, transparent);
 }
 
 .bookcover__reg::before {
@@ -477,12 +506,12 @@ body.is-home .view {
 
 .chip--ghost {
   background: transparent;
-  border-color: rgba(255, 255, 255, 0.4);
-  color: #fff;
+  border-color: rgba(244, 248, 252, 0.38);
+  color: var(--cover-foreground);
 }
 
 .chip--ghost:hover {
-  border-color: rgba(255, 255, 255, 0.78);
+  border-color: rgba(244, 248, 252, 0.74);
 }
 
 .bookcover__center {
@@ -502,7 +531,7 @@ body.is-home .view {
   gap: var(--s-16);
   font-size: var(--t-caption);
   font-weight: var(--w-medium);
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(244, 248, 252, 0.66);
 }
 
 .bookcover__kicker-text {
@@ -515,7 +544,7 @@ body.is-home .view {
   position: relative;
   width: clamp(36px, 7vw, 110px);
   height: 1px;
-  background: rgba(255, 255, 255, 0.3);
+  background: color-mix(in srgb, var(--cover-cyan) 32%, transparent);
   animation: bc-dim 700ms var(--ease-out) 880ms backwards;
 }
 
@@ -526,7 +555,7 @@ body.is-home .view {
   top: -3px;
   width: 1px;
   height: 7px;
-  background: rgba(255, 255, 255, 0.3);
+  background: color-mix(in srgb, var(--cover-cyan) 32%, transparent);
 }
 
 .bookcover__dimline::before {
@@ -556,7 +585,7 @@ body.is-home .view {
   margin-top: var(--s-24);
   font-size: clamp(1rem, 2vw, 1.125rem);
   line-height: 1.8;
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(244, 248, 252, 0.8);
 }
 
 .bookcover__actions {
@@ -585,8 +614,9 @@ body.is-home .view {
 
 /* 蓝底上唯一的实心元素，对应内页唯一的黑胶囊 */
 .bcbtn--solid {
-  background: #fff;
-  color: var(--brand-blue);
+  background: var(--cover-foreground);
+  color: var(--cover-ink);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cover-accent) 20%, transparent);
 }
 
 .bcbtn--solid:hover {
@@ -594,27 +624,27 @@ body.is-home .view {
 }
 
 .bcbtn--ghost {
-  border: 1px solid rgba(255, 255, 255, 0.44);
-  color: #fff;
+  border: 1px solid rgba(244, 248, 252, 0.42);
+  color: var(--cover-foreground);
 }
 
 .bcbtn--ghost:hover {
-  border-color: rgba(255, 255, 255, 0.85);
-  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(244, 248, 252, 0.8);
+  background: rgba(244, 248, 252, 0.06);
 }
 
 .bookcover__resume {
   margin-top: var(--s-24);
   font-size: var(--t-caption);
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(244, 248, 252, 0.72);
   text-decoration: underline;
   text-underline-offset: 0.3em;
-  text-decoration-color: rgba(255, 255, 255, 0.35);
+  text-decoration-color: color-mix(in srgb, var(--cover-cyan) 42%, transparent);
   transition: color var(--dur-ui) var(--ease);
 }
 
 .bookcover__resume:hover {
-  color: #fff;
+  color: var(--cover-foreground);
 }
 
 /* 图例栏：49 篇标题匀速滚动，像图纸边缘的图例；hover 暂停细读 */
@@ -623,8 +653,8 @@ body.is-home .view {
   overflow: hidden;
   margin: 0 calc(-1 * var(--pad-x)) var(--s-24);
   padding: 12px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: 1px solid color-mix(in srgb, var(--cover-cyan) 16%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--cover-cyan) 16%, transparent);
   animation: bc-fade 700ms var(--ease-out) 950ms backwards;
 }
 
@@ -642,7 +672,7 @@ body.is-home .view {
   white-space: nowrap;
   font-size: 12px;
   letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.42);
+  color: rgba(244, 248, 252, 0.46);
 }
 
 /* 跑马灯里的每条篇目都是入口：hover 暂停轨道、当前条点亮 */
@@ -652,7 +682,7 @@ body.is-home .view {
 }
 
 .bookcover__ticker-link:hover {
-  color: #fff;
+  color: var(--cover-foreground);
 }
 
 /* 轨道是两份相同内容，位移自身一半即回到起点，实现无缝循环 */
@@ -672,13 +702,13 @@ body.is-home .view {
 .bookcover__hint {
   font-size: 12px;
   letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(244, 248, 252, 0.52);
 }
 
 .bookcover__stats {
   font-size: 13px;
   letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.56);
+  color: rgba(244, 248, 252, 0.58);
   font-variant-numeric: tabular-nums; /* 数字滚动时宽度不抖 */
 }
 
@@ -1290,13 +1320,12 @@ body.is-home .view {
 /* 滚动进场：进视口后升起；同排卡片按位置错开 */
 @keyframes lp-rise {
   from {
-    opacity: 0;
     transform: translateY(18px);
   }
 }
 
 .lp--animate :is(.lp__head, .lp__card, .lp__cta-box):not(.lp-in) {
-  opacity: 0;
+  transform: translateY(18px);
 }
 
 .lp--animate .lp-in {

@@ -189,6 +189,17 @@ a {
   --brand-blue: #1a2ff7;
   --brand-cyan: #00c8fb;
   --grad-brand: linear-gradient(var(--brand-cyan), var(--brand-blue));
+  /* 首页封面直接取自豆包 Logo：深蓝主体、亮蓝过渡和浅青高光。
+     高光只放在空白区域，中心阅读区仍由深蓝托住白字。 */
+  --cover-blue-deep: #0863f5;
+  --cover-blue: #1674fc;
+  --cover-blue-light: #79c4fc;
+  --cover-blue-tail: #429afc;
+  --cover-highlight: #c6eefc;
+  --cover-ink: #17375e;
+  --cover-accent: #2d88fc;
+  --cover-cyan: #b3e5fb;
+  --cover-foreground: #f4f8fc;
   /* 荧光笔：只压在文字下沿，不碰行距 */
   --marker: color-mix(in srgb, var(--brand-cyan) 20%, transparent);
 

@@ -5,13 +5,13 @@
    导航靠页眉右上的胶囊、目录页，以及每篇文末的下一节链接。
    ============================================================ */
 
-import { renderMarkdown, escapeHtml, plainText } from "./markdown.js?v=20260901-2";
+import { renderMarkdown, escapeHtml, plainText } from "./markdown.js?v=20260901-3";
 
 const READ_KEY = "dwg.read";
 const RESUME_KEY = "dwg.resume";
 const RAIL_KEY = "dwg.rail"; /* 左侧章节目录："1" 固定展开，其余（含首次）收起悬浮 */
 const ASSET_VERSION =
-  document.querySelector('meta[name="dwg-assets-version"]')?.content || "20260901-2";
+  document.querySelector('meta[name="dwg-assets-version"]')?.content || "20260901-3";
 const versionedAsset = (path) => `${path}?v=${encodeURIComponent(ASSET_VERSION)}`;
 
 const dom = {
@@ -34,6 +34,9 @@ const state = {
   index: [], // 全文搜索索引
   keyboardNav: false,
   cleanup: [],
+  fullContentReady: false,
+  fullContentPromise: null,
+  routeRevision: 0,
 };
 
 /* ------------------------------------------------------------
@@ -90,10 +93,14 @@ function resumeLine() {
 const shortId = (token) => String(token || "").replace(/^doc-/, "");
 const isSection = (doc) => Boolean(doc.hasChild);
 const docHref = (doc) => `#/p/${shortId(doc.nodeToken)}`;
+const imageCount = (doc) => doc.imageCount ?? doc.images?.length ?? 0;
+const videoCount = (doc) => doc.videoCount ?? doc.videos?.length ?? 0;
+const charCount = (doc) => doc.charCount ?? doc.content?.length ?? 0;
 
-function buildModel(payload) {
+function buildModel(payload, { full = false } = {}) {
   const docs = (payload.documents || []).slice();
   state.docs = docs;
+  if (full) state.fullContentReady = true;
 
   const childrenOf = (token) =>
     docs.filter((doc) => doc.parentToken === token).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -125,9 +132,9 @@ function buildModel(payload) {
 
   state.counts = {
     docs: state.leafOrder.size,
-    images: docs.reduce((sum, doc) => sum + (doc.images?.length || 0), 0),
-    videos: docs.reduce((sum, doc) => sum + (doc.videos?.length || 0), 0),
-    chars: docs.reduce((sum, doc) => sum + (doc.content?.length || 0), 0),
+    images: docs.reduce((sum, doc) => sum + imageCount(doc), 0),
+    videos: docs.reduce((sum, doc) => sum + videoCount(doc), 0),
+    chars: docs.reduce((sum, doc) => sum + charCount(doc), 0),
   };
 
   buildSearchIndex();
@@ -141,7 +148,7 @@ function buildSearchIndex() {
   state.index = state.flat.map(({ doc, part }) => {
     // 去掉块级 Markdown 语法后再走行内清理，得到可检索、可做摘要的纯文本
     const text = plainText(
-      (doc.content || "")
+      (doc.content || doc.excerpt || "")
         .replace(/^#{1,6}\s*/gm, "")
         .replace(/^>\s?/gm, "")
         .replace(/^[-*]\s+/gm, "")
@@ -232,8 +239,8 @@ function countRead(node) {
 
 function docMeta(doc) {
   const bits = [];
-  if (doc.images?.length) bits.push(`${doc.images.length} 图`);
-  if (doc.videos?.length) bits.push(`${doc.videos.length} 视频`);
+  if (imageCount(doc)) bits.push(`${imageCount(doc)} 图`);
+  if (videoCount(doc)) bits.push(`${videoCount(doc)} 视频`);
   return bits.join(" · ");
 }
 
@@ -304,8 +311,8 @@ function viewLanding() {
 
   const taskCards = picks
     .map(({ group, doc }, i) => {
-      const excerpt = plainText((doc.content || "").replace(/^#.*$/m, "")).slice(0, 72);
-      const minutes = Math.max(1, Math.round((doc.content || "").length / 380));
+      const excerpt = (doc.excerpt || plainText((doc.content || "").replace(/^#.*$/m, ""))).slice(0, 72);
+      const minutes = Math.max(1, Math.round(charCount(doc) / 380));
       return `
         <a class="lp__card lp__task" href="${docHref(doc)}">
           <span class="lp__tape" aria-hidden="true"></span>
@@ -442,7 +449,7 @@ function viewLanding() {
           <nav class="lp__foot-links" aria-label="站外链接">
             <a href="${FOOT_LINKS.contact}" target="_blank" rel="noopener noreferrer">联系我们</a>
             <a class="lp__foot-git" href="${FOOT_LINKS.repo}" target="_blank" rel="noopener noreferrer" aria-label="GitHub 仓库">${GITHUB_ICON}</a>
-            <a href="${FOOT_LINKS.community}" target="_blank" rel="noopener noreferrer">加入 Agentwork 社区</a>
+            <a href="${FOOT_LINKS.community}" target="_blank" rel="noopener noreferrer">更多开源项目</a>
           </nav>
           <p class="lp__foot-copy">© 豆包工作蓝皮书</p>
           <nav class="lp__foot-friends" aria-label="友情链接">
@@ -900,8 +907,8 @@ function viewDoc(entry) {
     isSection(doc)
       ? `${(doc.children || []).length} 个子章节`
       : `第 ${state.leafOrder.get(doc.nodeToken)} / ${state.counts.docs} 篇`,
-    doc.images?.length ? `${doc.images.length} 张截图` : "",
-    doc.videos?.length ? `${doc.videos.length} 段视频` : "",
+    imageCount(doc) ? `${imageCount(doc)} 张截图` : "",
+    videoCount(doc) ? `${videoCount(doc)} 段视频` : "",
     !isSection(doc) && doc.content
       ? `约 ${Math.max(1, Math.round(doc.content.length / 380))} 分钟`
       : "",
@@ -917,7 +924,12 @@ function viewDoc(entry) {
         <p class="article__where">${where}</p>
         <h1 class="display article__title">${escapeHtml(doc.title)}</h1>
         <p class="article__meta">${escapeHtml(meta)}</p>
-        ${body}
+        <div class="article__body-frame${isSection(doc) ? " article__body-frame--overview" : ""}">
+          <span class="article__body-label" aria-hidden="true">${
+            isSection(doc) ? "CHAPTER INDEX · 章节索引" : "FIELD NOTES · 实践正文"
+          }</span>
+          ${body}
+        </div>
         <nav class="article__next" aria-label="继续阅读">
           ${
             next
@@ -953,7 +965,7 @@ function viewDoc(entry) {
 const FOOT_LINKS = {
   repo: "https://github.com/AlephAITech/DoubaoWorkGuide",
   contact: "https://github.com/AlephAITech/DoubaoWorkGuide/issues",
-  community: "https://github.com/AlephAITech", // TODO: 换成 Agentwork 社区的真实入口
+  community: "https://github.com/AlephAITech",
 };
 
 /* 页脚友链 */
@@ -980,7 +992,7 @@ function footer(tight = false) {
         <nav class="foot__links" aria-label="站外链接">
           <a href="${FOOT_LINKS.contact}" target="_blank" rel="noopener noreferrer">联系我们</a>
           <a class="foot__git" href="${FOOT_LINKS.repo}" target="_blank" rel="noopener noreferrer" aria-label="GitHub 仓库">${GITHUB_ICON}</a>
-          <a href="${FOOT_LINKS.community}" target="_blank" rel="noopener noreferrer">加入 Agentwork 社区</a>
+          <a href="${FOOT_LINKS.community}" target="_blank" rel="noopener noreferrer">更多开源项目</a>
         </nav>
         <p class="foot__copy">© 豆包工作蓝皮书</p>
       </div>
@@ -1015,6 +1027,58 @@ function showLoadError(error) {
     <code class="state__code">python3 -m http.server 4173 --bind 127.0.0.1 --directory site</code>
     <p class="state__text">${escapeHtml(error?.message || error || "")}</p>
     </div>`;
+}
+
+function showRouteLoading() {
+  document.body.classList.remove("is-home");
+  dom.app.innerHTML = `
+    <div class="view">
+      <div class="state" role="status" aria-live="polite">
+        <p class="state__eyebrow">正在展开正文</p>
+        <h1 class="display">马上就好</h1>
+        <p class="state__text">正在载入这一篇的正文与媒体清单。</p>
+      </div>
+    </div>`;
+  window.scrollTo({ top: 0, behavior: "auto" });
+}
+
+async function fetchPayload(file) {
+  const response = await fetch(versionedAsset(`content/${file}`), { cache: "force-cache" });
+  if (!response.ok) throw new Error(`${file}: HTTP ${response.status}`);
+  return response.json();
+}
+
+function ensureFullContent() {
+  if (state.fullContentReady) return Promise.resolve();
+  if (!state.fullContentPromise) {
+    state.fullContentPromise = fetchPayload("site-content.json")
+      .then((payload) => buildModel(payload, { full: true }))
+      .catch((error) => {
+        state.fullContentPromise = null;
+        throw error;
+      });
+  }
+  return state.fullContentPromise;
+}
+
+function scheduleFullContent() {
+  const load = () => ensureFullContent().catch(() => {});
+  if ("requestIdleCallback" in window) window.requestIdleCallback(load, { timeout: 1200 });
+  else setTimeout(load, 0);
+}
+
+async function handleRouteChange() {
+  const revision = ++state.routeRevision;
+  if (parseHash().name === "doc" && !state.fullContentReady) {
+    showRouteLoading();
+    try {
+      await ensureFullContent();
+    } catch (error) {
+      if (revision === state.routeRevision) showLoadError(error);
+      return;
+    }
+  }
+  if (revision === state.routeRevision) render();
 }
 
 /* ------------------------------------------------------------
@@ -1158,6 +1222,7 @@ function bindPage() {
 let sharebox = null;
 let shareCard = { url: "", name: "" };
 let logoPromise = null;
+let qrLibraryPromise = null;
 
 function loadLogo() {
   if (!logoPromise) {
@@ -1169,6 +1234,21 @@ function loadLogo() {
     });
   }
   return logoPromise;
+}
+
+function loadQRLibrary() {
+  if (typeof qrcode === "function") return Promise.resolve();
+  if (!qrLibraryPromise) {
+    qrLibraryPromise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = versionedAsset("js/vendor/qrcode.js");
+      script.async = true;
+      script.onload = resolve;
+      script.onerror = () => reject(new Error("二维码组件加载失败"));
+      document.head.appendChild(script);
+    });
+  }
+  return qrLibraryPromise;
 }
 
 /* 按字折行，最多 maxLines 行，超出的在行尾加省略号 */
@@ -1207,8 +1287,11 @@ function drawQR(ctx, text, x, y, size) {
 }
 
 async function drawShareCard(doc) {
-  await document.fonts.ready;
-  const logo = await loadLogo().catch(() => null);
+  const [, logo] = await Promise.all([
+    document.fonts.ready,
+    loadLogo().catch(() => null),
+    loadQRLibrary().catch(() => null),
+  ]);
 
   // A5 竖版（148:210），840×1188 ≈ A5 @144dpi，再 2x 导出保证清晰
   const W = 840;
@@ -1754,15 +1837,27 @@ function openSearch() {
   if (!dom.search) return;
   dom.search.__prevFocus = document.activeElement;
   dom.search.dataset.open = "true";
+  dom.searchInput.setAttribute("aria-expanded", "true");
   document.body.classList.add("is-locked");
   dom.searchInput.value = "";
   renderSearchResults([]);
   dom.searchInput.focus();
+  if (!state.fullContentReady) {
+    ensureFullContent()
+      .then(() => {
+        if (!isSearchOpen()) return;
+        const query = dom.searchInput.value;
+        const terms = query.trim().split(/\s+/).filter(Boolean);
+        renderSearchResults(terms.length ? searchDocs(query) : [], terms);
+      })
+      .catch(() => {});
+  }
 }
 
 function closeSearch() {
   if (!dom.search || dom.search.dataset.open !== "true") return;
   dom.search.dataset.open = "false";
+  dom.searchInput.setAttribute("aria-expanded", "false");
   document.body.classList.remove("is-locked");
   dom.searchInput.blur();
   if (dom.search.__prevFocus?.isConnected) dom.search.__prevFocus.focus();
@@ -1779,7 +1874,7 @@ function renderSearchResults(results, terms = []) {
   dom.searchResults.innerHTML = results
     .map(
       ({ entry, snippet }, i) => `
-        <li class="search__item" role="option" aria-selected="${i === 0}" data-token="${entry.token}">
+        <li class="search__item" id="search-result-${i}" role="option" aria-selected="${i === 0}" data-token="${entry.token}">
           <p class="search__item-title">
             ${highlight(entry.title, terms)}${
         entry.part ? `<span class="search__item-part">${escapeHtml(entry.part)}</span>` : ""
@@ -1789,13 +1884,21 @@ function renderSearchResults(results, terms = []) {
         </li>`
     )
     .join("");
+  if (results.length) dom.searchInput.setAttribute("aria-activedescendant", "search-result-0");
+  else dom.searchInput.removeAttribute("aria-activedescendant");
 
   const query = dom.searchInput.value.trim();
   dom.searchHint.textContent = !query
-    ? `↑↓ 选择 · 回车打开 · 共 ${state.counts?.docs ?? ""} 篇可检索`
+    ? state.fullContentReady
+      ? `↑↓ 选择 · 回车打开 · 共 ${state.counts?.docs ?? ""} 篇可检索`
+      : `正文索引加载中 · 当前可搜索 ${state.counts?.docs ?? ""} 篇标题与摘要`
     : results.length
-    ? `${results.length} 条结果${results.length === 20 ? "（只显示前 20 条）" : ""}`
-    : "没有找到，换个关键词试试";
+    ? `${results.length} 条结果${results.length === 20 ? "（只显示前 20 条）" : ""}${
+        state.fullContentReady ? "" : " · 正文索引加载中"
+      }`
+    : state.fullContentReady
+    ? "没有找到，换个关键词试试"
+    : "正文索引加载中，稍后会自动补全结果";
 }
 
 function setActiveResult(next) {
@@ -1803,6 +1906,7 @@ function setActiveResult(next) {
   if (!items.length) return;
   searchState.active = (next + items.length) % items.length;
   items.forEach((item, i) => item.setAttribute("aria-selected", String(i === searchState.active)));
+  dom.searchInput.setAttribute("aria-activedescendant", items[searchState.active].id);
   items[searchState.active].scrollIntoView({ block: "nearest" });
 }
 
@@ -1956,11 +2060,15 @@ async function boot() {
   window.addEventListener("scroll", () => positionGroupBox(groupboxTrigger), { passive: true });
 
   try {
-    const response = await fetch(versionedAsset("content/site-content.json"), {
-      cache: "no-cache",
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    buildModel(await response.json());
+    if (parseHash().name === "doc") {
+      await ensureFullContent();
+    } else {
+      try {
+        buildModel(await fetchPayload("site-index.json"));
+      } catch (indexError) {
+        await ensureFullContent();
+      }
+    }
   } catch (error) {
     showLoadError(error);
     return;
@@ -1970,10 +2078,11 @@ async function boot() {
   if (dom.searchHint)
     dom.searchHint.textContent = `↑↓ 选择 · 回车打开 · 共 ${state.counts.docs} 篇可检索`;
 
-  window.addEventListener("hashchange", render);
+  window.addEventListener("hashchange", handleRouteChange);
   render();
   dom.app.hidden = false;
   document.body.classList.remove("is-booting");
+  if (!state.fullContentReady) scheduleFullContent();
 }
 
 boot();
