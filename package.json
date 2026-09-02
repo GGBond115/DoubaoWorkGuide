@@ -2,7 +2,7 @@
   "scripts": {
     "build:index": "node tools/build-site-index.mjs",
     "serve": "python3 -m http.server 4173 --bind 127.0.0.1 --directory site",
-    "test": "node tools/build-site-index.mjs && node tools/check-boot.mjs && node tools/check-landing.mjs && node tools/check-features.mjs && node tools/check-mobile.mjs && node tools/check-group.mjs && node tools/check-cover-palette.mjs && node tools/check-theme.mjs",
+    "test": "node tools/build-site-index.mjs && node tools/check-boot.mjs && node tools/check-landing.mjs && node tools/check-features.mjs && node tools/check-mobile.mjs && node tools/check-group.mjs && node tools/check-cover-palette.mjs && node tools/check-theme.mjs && node tools/check-followup.mjs",
     "audit": "node tools/audit-site.mjs && node tools/check-performance.mjs"
   },
   "devDependencies": {

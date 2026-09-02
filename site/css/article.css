@@ -1002,9 +1002,18 @@ details[open] > .rail__sum .rail__chev {
 
 .article__tail {
   margin-top: var(--s-40);
+}
+
+.article__previous {
+  max-width: 42rem;
+  line-height: var(--lh-body);
+}
+
+.article__tail-actions {
+  margin-top: var(--s-16);
   display: flex;
   flex-wrap: wrap;
-  gap: var(--s-24);
+  gap: var(--s-12) var(--s-24);
   font-size: var(--t-body);
   font-weight: var(--w-medium);
 }

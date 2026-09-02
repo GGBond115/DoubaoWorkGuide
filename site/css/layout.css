@@ -1265,7 +1265,7 @@ body.is-home .view {
   margin-top: var(--s-32);
 }
 
-/* 蓝页页脚：深藏青反白，与封面的字距标签同一套语言 */
+/* 蓝页页脚：直接延续封面蓝，而不是另起一块藏青色。 */
 .lp__foot {
   display: flex;
   flex-wrap: wrap;
@@ -1274,7 +1274,12 @@ body.is-home .view {
   gap: var(--s-12) var(--s-24);
   margin: 0 calc(-1 * var(--pad-x));
   padding: 26px var(--pad-x);
-  background: var(--lp-line);
+  border-top: 1px solid color-mix(in srgb, var(--cover-cyan) 42%, transparent);
+  background-color: var(--cover-blue-deep);
+  background-image: linear-gradient(rgba(244, 248, 252, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(244, 248, 252, 0.055) 1px, transparent 1px),
+    linear-gradient(128deg, var(--brand-fill), var(--cover-blue-deep));
+  background-size: 36px 36px, 36px 36px, auto;
   color: rgba(255, 255, 255, 0.72);
 }
 
@@ -1294,7 +1299,7 @@ body.is-home .view {
 }
 
 .lp__foot-links a {
-  color: rgba(255, 255, 255, 0.72);
+  color: #fff;
   transition: color var(--dur-ui) var(--ease);
 }
 
@@ -1427,10 +1432,57 @@ body.is-home .view {
   transform: none;
 }
 
+.sharebox__preview {
+  position: relative;
+  min-height: min(58vh, 520px);
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--surface) 94%, var(--brand-blue));
+  border-bottom: 1px solid var(--hairline);
+  overflow: hidden;
+}
+
 .sharebox__img {
   display: block;
   width: 100%;
-  border-bottom: 1px solid var(--hairline);
+  opacity: 0;
+  transition: opacity var(--dur-ui) var(--ease);
+}
+
+.sharebox[data-state="ready"] .sharebox__img {
+  opacity: 1;
+}
+
+.sharebox__loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-12);
+  color: var(--ink-muted);
+  font-size: var(--t-caption);
+  font-weight: var(--w-medium);
+}
+
+.sharebox:not([data-state="loading"]) .sharebox__loading {
+  display: none;
+}
+
+.sharebox__spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--hairline-strong);
+  border-top-color: var(--brand-blue);
+  border-radius: 50%;
+  animation: sharebox-spin 800ms linear infinite;
+}
+
+@keyframes sharebox-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .sharebox__row {
@@ -1442,7 +1494,8 @@ body.is-home .view {
   padding: var(--s-16) var(--s-24);
 }
 
-.sharebox__hint {
+.sharebox__status {
+  flex: 1 1 180px;
   font-size: var(--t-caption);
   color: var(--ink-faded);
 }
@@ -1450,6 +1503,39 @@ body.is-home .view {
 .sharebox__actions {
   display: flex;
   gap: var(--s-8);
+}
+
+.sharebox__actions .chip:disabled {
+  opacity: 0.42;
+  cursor: wait;
+}
+
+.sharebox[data-state="error"] .sharebox__preview {
+  min-height: 180px;
+}
+
+.sharebox[data-state="error"] .sharebox__status {
+  color: var(--ink);
+}
+
+@media (max-width: 620px) {
+  .sharebox {
+    padding: var(--s-12);
+  }
+
+  .sharebox__preview {
+    min-height: min(56vh, 440px);
+  }
+
+  .sharebox__row {
+    align-items: flex-start;
+    padding: var(--s-12) var(--s-16);
+  }
+
+  .sharebox__actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
 }
 
 /* ------------------------------------------------------------

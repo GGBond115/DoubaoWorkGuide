@@ -5,7 +5,7 @@
    导航靠页眉右上的胶囊、目录页，以及每篇文末的下一节链接。
    ============================================================ */
 
-import { renderMarkdown, escapeHtml, plainText } from "./markdown.js?v=20260902-1";
+import { renderMarkdown, escapeHtml, plainText } from "./markdown.js?v=20260902-2";
 
 const READ_KEY = "dwg.read";
 const RESUME_KEY = "dwg.resume";
@@ -13,7 +13,7 @@ const RAIL_KEY = "dwg.rail"; /* 左侧章节目录："1" 固定展开，其余�
 const THEME_KEY = "dwg.theme";
 const THEME_ORDER = ["system", "light", "dark"];
 const ASSET_VERSION =
-  document.querySelector('meta[name="dwg-assets-version"]')?.content || "20260902-1";
+  document.querySelector('meta[name="dwg-assets-version"]')?.content || "20260902-2";
 const versionedAsset = (path) => `${path}?v=${encodeURIComponent(ASSET_VERSION)}`;
 
 const dom = {
@@ -509,7 +509,7 @@ function viewLanding() {
           <nav class="lp__foot-links" aria-label="站外链接">
             <a href="${FOOT_LINKS.contact}" target="_blank" rel="noopener noreferrer">联系我们</a>
             <a class="lp__foot-git" href="${FOOT_LINKS.repo}" target="_blank" rel="noopener noreferrer" aria-label="GitHub 仓库">${GITHUB_ICON}</a>
-            <a href="${FOOT_LINKS.community}" target="_blank" rel="noopener noreferrer">更多开源项目</a>
+            <a href="${FOOT_LINKS.community}" target="_blank" rel="noopener noreferrer">加入 AgentWork 社区</a>
           </nav>
           <p class="lp__foot-copy">© 豆包工作蓝皮书</p>
           <nav class="lp__foot-friends" aria-label="友情链接">
@@ -1000,17 +1000,19 @@ function viewDoc(entry) {
               : `<p class="article__next-label">已经是最后一节</p>
                  <a class="nextlink" href="#/toc">回到目录</a>`
           }
-          <p class="article__tail">
+          <div class="article__tail">
             ${
               prev
-                ? `<a class="link" href="${docHref(prev.doc)}">上一节：${escapeHtml(
-                    prev.doc.title
-                  )}</a>`
+                ? `<p class="article__previous"><a class="link" href="${docHref(
+                    prev.doc
+                  )}">上一节：${escapeHtml(prev.doc.title)}</a></p>`
                 : ""
             }
-            <a class="link" href="#/toc">目录</a>
-            <button class="link" type="button" data-share>分享本篇</button>
-          </p>
+            <p class="article__tail-actions">
+              <a class="link" href="#/toc">目录</a>
+              <button class="link" type="button" data-share>分享本篇</button>
+            </p>
+          </div>
         </nav>
       </article>
       ${footer(true)}
@@ -1052,7 +1054,7 @@ function footer(tight = false) {
         <nav class="foot__links" aria-label="站外链接">
           <a href="${FOOT_LINKS.contact}" target="_blank" rel="noopener noreferrer">联系我们</a>
           <a class="foot__git" href="${FOOT_LINKS.repo}" target="_blank" rel="noopener noreferrer" aria-label="GitHub 仓库">${GITHUB_ICON}</a>
-          <a href="${FOOT_LINKS.community}" target="_blank" rel="noopener noreferrer">更多开源项目</a>
+          <a href="${FOOT_LINKS.community}" target="_blank" rel="noopener noreferrer">加入 AgentWork 社区</a>
         </nav>
         <p class="foot__copy">© 豆包工作蓝皮书</p>
       </div>
@@ -1284,6 +1286,7 @@ let sharebox = null;
 let shareCard = { url: "", name: "" };
 let logoPromise = null;
 let qrLibraryPromise = null;
+let shareGeneration = 0;
 
 function loadLogo() {
   if (!logoPromise) {
@@ -1304,8 +1307,19 @@ function loadQRLibrary() {
       const script = document.createElement("script");
       script.src = versionedAsset("js/vendor/qrcode.js");
       script.async = true;
-      script.onload = resolve;
-      script.onerror = () => reject(new Error("二维码组件加载失败"));
+      script.onload = () => {
+        if (typeof qrcode === "function") resolve();
+        else {
+          qrLibraryPromise = null;
+          script.remove();
+          reject(new Error("二维码组件没有正确初始化"));
+        }
+      };
+      script.onerror = () => {
+        qrLibraryPromise = null;
+        script.remove();
+        reject(new Error("二维码组件加载失败"));
+      };
       document.head.appendChild(script);
     });
   }
@@ -1351,7 +1365,7 @@ async function drawShareCard(doc) {
   const [, logo] = await Promise.all([
     document.fonts.ready,
     loadLogo().catch(() => null),
-    loadQRLibrary().catch(() => null),
+    loadQRLibrary(),
   ]);
 
   // A5 竖版（148:210），840×1188 ≈ A5 @144dpi，再 2x 导出保证清晰
@@ -1441,13 +1455,20 @@ async function openShareBox(doc) {
     sharebox = document.createElement("div");
     sharebox.className = "sharebox";
     sharebox.dataset.open = "false";
+    sharebox.dataset.state = "idle";
     sharebox.innerHTML = `
-      <div class="sharebox__panel">
-        <img class="sharebox__img" alt="分享卡片" />
+      <div class="sharebox__panel" tabindex="-1">
+        <div class="sharebox__preview">
+          <img class="sharebox__img" alt="" />
+          <div class="sharebox__loading" aria-hidden="true">
+            <span class="sharebox__spinner"></span>
+            <span>正在绘制卡片</span>
+          </div>
+        </div>
         <div class="sharebox__row">
-          <p class="sharebox__hint">也可以右键 / 长按图片直接拷贝</p>
+          <p class="sharebox__status" role="status" aria-live="polite">准备生成分享卡片</p>
           <span class="sharebox__actions">
-            <button class="chip" type="button" data-card-download>下载卡片</button>
+            <button class="chip" type="button" data-card-download disabled>下载卡片</button>
             <button class="chip" type="button" data-card-link>复制链接</button>
           </span>
         </div>
@@ -1478,17 +1499,40 @@ async function openShareBox(doc) {
     document.body.appendChild(sharebox);
   }
 
-  const canvas = await drawShareCard(doc);
-  shareCard = { url: canvas.toDataURL("image/png"), name: `${doc.title} · 豆包工作蓝皮书.png` };
-  sharebox.querySelector(".sharebox__img").src = shareCard.url;
+  const generation = ++shareGeneration;
+  const image = sharebox.querySelector(".sharebox__img");
+  const status = sharebox.querySelector(".sharebox__status");
+  const download = sharebox.querySelector("[data-card-download]");
+  const actions = sharebox.querySelector(".sharebox__actions");
+
   sharebox.__prevFocus = document.activeElement;
   sharebox.dataset.open = "true";
+  sharebox.dataset.state = "loading";
+  image.removeAttribute("src");
+  image.alt = "";
+  status.textContent = "正在生成分享卡片与二维码…";
+  download.disabled = true;
+  actions.querySelector("[data-card-share]")?.remove();
   document.body.classList.add("is-locked");
-  sharebox.querySelector("[data-card-download]")?.focus();
+  sharebox.querySelector(".sharebox__panel")?.focus();
+
+  try {
+    const canvas = await drawShareCard(doc);
+    if (generation !== shareGeneration) return;
+    shareCard = { url: canvas.toDataURL("image/png"), name: `${doc.title} · 豆包工作蓝皮书.png` };
+    image.src = shareCard.url;
+    image.alt = `${doc.title}分享卡片，右下角含阅读二维码`;
+    sharebox.dataset.state = "ready";
+    status.textContent = "二维码已生成，可下载图片或复制链接";
+    download.disabled = false;
+  } catch (error) {
+    if (generation !== shareGeneration) return;
+    sharebox.dataset.state = "error";
+    status.textContent = "卡片生成失败，请使用复制链接分享";
+    return;
+  }
 
   // 手机上补一颗「系统分享」，把卡片图连标题一起交给系统面板
-  const actions = sharebox.querySelector(".sharebox__actions");
-  actions.querySelector("[data-card-share]")?.remove();
   if (matchMedia("(pointer: coarse)").matches && navigator.share) {
     const button = document.createElement("button");
     button.className = "chip";
