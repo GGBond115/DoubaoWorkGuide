@@ -5,13 +5,15 @@
    导航靠页眉右上的胶囊、目录页，以及每篇文末的下一节链接。
    ============================================================ */
 
-import { renderMarkdown, escapeHtml, plainText } from "./markdown.js?v=20260901-3";
+import { renderMarkdown, escapeHtml, plainText } from "./markdown.js?v=20260902-1";
 
 const READ_KEY = "dwg.read";
 const RESUME_KEY = "dwg.resume";
 const RAIL_KEY = "dwg.rail"; /* 左侧章节目录："1" 固定展开，其余（含首次）收起悬浮 */
+const THEME_KEY = "dwg.theme";
+const THEME_ORDER = ["system", "light", "dark"];
 const ASSET_VERSION =
-  document.querySelector('meta[name="dwg-assets-version"]')?.content || "20260901-3";
+  document.querySelector('meta[name="dwg-assets-version"]')?.content || "20260902-1";
 const versionedAsset = (path) => `${path}?v=${encodeURIComponent(ASSET_VERSION)}`;
 
 const dom = {
@@ -38,6 +40,63 @@ const state = {
   fullContentPromise: null,
   routeRevision: 0,
 };
+
+/* ------------------------------------------------------------
+   主题：默认跟随系统，可固定为日间或暗色；首屏状态由 head 内联脚本提前设置
+   ------------------------------------------------------------ */
+
+const themeMedia = matchMedia("(prefers-color-scheme: dark)");
+
+function effectiveTheme(preference) {
+  return preference === "system" ? (themeMedia.matches ? "dark" : "light") : preference;
+}
+
+function syncThemeControls() {
+  const preference = document.documentElement.dataset.theme || "system";
+  const config = {
+    system: { icon: "◐", text: "自动", label: "主题：跟随系统；点击切换为日间模式" },
+    light: { icon: "☀", text: "日间", label: "主题：日间模式；点击切换为暗色模式" },
+    dark: { icon: "☾", text: "暗色", label: "主题：暗色模式；点击切换为跟随系统" },
+  }[preference];
+  document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+    button.querySelector(".theme-toggle__icon")?.replaceChildren(config.icon);
+    button.querySelector(".theme-toggle__label")?.replaceChildren(config.text);
+    button.setAttribute("aria-label", config.label);
+    button.setAttribute("title", config.label);
+  });
+}
+
+function applyThemePreference(preference, { persist = true } = {}) {
+  const safePreference = THEME_ORDER.includes(preference) ? preference : "system";
+  const effective = effectiveTheme(safePreference);
+  const root = document.documentElement;
+  root.dataset.theme = safePreference;
+  root.dataset.themeEffective = effective;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute(
+    "content",
+    effective === "dark" ? "#111318" : "#ffffff"
+  );
+  if (persist) {
+    try {
+      localStorage.setItem(THEME_KEY, safePreference);
+    } catch (error) {}
+  }
+  syncThemeControls();
+}
+
+function initTheme() {
+  applyThemePreference(document.documentElement.dataset.theme || "system", { persist: false });
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest("[data-theme-toggle]")) return;
+    const current = document.documentElement.dataset.theme || "system";
+    applyThemePreference(THEME_ORDER[(THEME_ORDER.indexOf(current) + 1) % THEME_ORDER.length]);
+  });
+  themeMedia.addEventListener?.("change", () => {
+    if (document.documentElement.dataset.theme === "system") {
+      applyThemePreference("system", { persist: false });
+    }
+  });
+}
 
 /* ------------------------------------------------------------
    已读记录
@@ -125,13 +184,10 @@ function buildModel(payload, { full = false } = {}) {
   state.parts.forEach((part) => walk(part, part, null));
   state.flat = flat;
 
-  state.leafOrder = new Map();
-  flat
-    .filter((entry) => !entry.doc.hasChild)
-    .forEach((entry, i) => state.leafOrder.set(entry.doc.nodeToken, i + 1));
+  const leafCount = flat.filter((entry) => !entry.doc.hasChild).length;
 
   state.counts = {
-    docs: state.leafOrder.size,
+    docs: leafCount,
     images: docs.reduce((sum, doc) => sum + imageCount(doc), 0),
     videos: docs.reduce((sum, doc) => sum + videoCount(doc), 0),
     chars: docs.reduce((sum, doc) => sum + charCount(doc), 0),
@@ -363,6 +419,10 @@ function viewLanding() {
         <div class="bookcover__bar">
           <span class="bookcover__brand">DOUBAO WORK<span class="bookcover__brand-ext"> · FIELD MANUAL</span></span>
           <span class="bookcover__nav">
+            <button class="chip chip--ghost theme-toggle" type="button" data-theme-toggle>
+              <span class="theme-toggle__icon" aria-hidden="true">◐</span>
+              <span class="theme-toggle__label">自动</span>
+            </button>
             <button class="chip chip--ghost" type="button" data-search>搜索</button>
             <a class="chip chip--ghost" href="#/toc">目录</a>
             <button class="chip chip--ghost" type="button" data-group>交流群</button>
@@ -906,7 +966,7 @@ function viewDoc(entry) {
   const meta = [
     isSection(doc)
       ? `${(doc.children || []).length} 个子章节`
-      : `第 ${state.leafOrder.get(doc.nodeToken)} / ${state.counts.docs} 篇`,
+      : "",
     imageCount(doc) ? `${imageCount(doc)} 张截图` : "",
     videoCount(doc) ? `${videoCount(doc)} 段视频` : "",
     !isSection(doc) && doc.content
@@ -1146,6 +1206,7 @@ function render() {
     if (!isSection(doc)) trackResume(doc);
   }
   bindPage();
+  syncThemeControls();
   dom.app.querySelectorAll(".display").forEach(phraseWrap);
   if (route.name === "intro") initReveal();
   if (route.name === "home") initLanding();
@@ -1360,12 +1421,9 @@ async function drawShareCard(doc) {
 
   const meta = isSection(doc)
     ? `${(doc.children || []).length} 个子章节`
-    : [
-        `第 ${state.leafOrder.get(doc.nodeToken)} / ${state.counts.docs} 篇`,
-        doc.content ? `约 ${Math.max(1, Math.round(doc.content.length / 380))} 分钟` : "",
-      ]
-        .filter(Boolean)
-        .join(" · ");
+    : doc.content
+    ? `约 ${Math.max(1, Math.round(doc.content.length / 380))} 分钟`
+    : "";
 
   const infoMid = qrY + qrSize / 2;
   ctx.fillStyle = "#232323";
@@ -1373,7 +1431,7 @@ async function drawShareCard(doc) {
   ctx.fillText(hasQR ? "扫码阅读本篇" : "豆包工作蓝皮书", PAD, infoMid - 24);
   ctx.fillStyle = "#a7a7a7";
   ctx.font = font("400 22px");
-  ctx.fillText(`豆包工作蓝皮书 · ${meta}`, PAD, infoMid + 24);
+  ctx.fillText(`豆包工作蓝皮书${meta ? ` · ${meta}` : ""}`, PAD, infoMid + 24);
 
   return canvas;
 }
@@ -2040,6 +2098,7 @@ function initKeyboard() {
 async function boot() {
   loadRead();
   loadResume();
+  initTheme();
   initKeyboard();
   initPinbar();
   initAnchors();

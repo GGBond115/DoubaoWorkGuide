@@ -184,9 +184,12 @@ a {
   --hairline: rgba(0, 0, 0, 0.1);
   --hairline-strong: rgba(0, 0, 0, 0.18);
   --wash: rgba(0, 0, 0, 0.04);
+  --hover-border: rgba(0, 0, 0, 0.3);
+  --hover-wash: rgba(0, 0, 0, 0.025);
   /* 站内唯一的色彩，来自豆包标志本身。
      用途克制：标志、行内链接、重点下划、小节记号，不做大面积填充 */
   --brand-blue: #1a2ff7;
+  --brand-fill: #1a2ff7;
   --brand-cyan: #00c8fb;
   --grad-brand: linear-gradient(var(--brand-cyan), var(--brand-blue));
   /* 首页封面直接取自豆包 Logo：深蓝主体、亮蓝过渡和浅青高光。
@@ -258,11 +261,44 @@ a {
   --dur-panel: 260ms;
 }
 
+:root[data-theme-effective="dark"] {
+  color-scheme: dark;
+  --canvas: #111318;
+  --surface: #191c23;
+  --black: #f5f7fb;
+  --ink: #e7eaf0;
+  --ink-muted: #aab0bc;
+  --ink-faded: #8f97a6;
+  --hairline: rgba(255, 255, 255, 0.12);
+  --hairline-strong: rgba(255, 255, 255, 0.24);
+  --wash: rgba(255, 255, 255, 0.07);
+  --hover-border: rgba(255, 255, 255, 0.34);
+  --hover-wash: rgba(255, 255, 255, 0.06);
+  --brand-blue: #7f96ff;
+  --brand-fill: #324bd6;
+  --brand-cyan: #45d7ff;
+  --cover-blue-deep: #061d55;
+  --cover-blue: #093c9b;
+  --cover-blue-light: #1764bd;
+  --cover-blue-tail: #0d4a9e;
+  --cover-highlight: #163b63;
+  --cover-ink: #d9e9ff;
+  --cover-accent: #74a8ff;
+  --cover-cyan: #61caed;
+  --cover-foreground: #f4f8fc;
+  --shadow-subtle: rgba(0, 0, 0, 0.36) 0px 1px 1px -0.5px,
+    rgba(0, 0, 0, 0.32) 0px 3px 3px -1.5px, rgba(0, 0, 0, 0.28) 0px 6px 6px -3px,
+    rgba(0, 0, 0, 0.24) 0px 12px 12px -6px, rgba(0, 0, 0, 0.2) 0px 24px 24px -12px;
+}
+
 /* 手机屏幕受环境光和系统网页容器影响更大，辅助信息不能沿用桌面端的
    铅笔灰。小屏统一提升到至少 3:1，同时收紧页面边距。 */
 @media (max-width: 720px) {
   :root {
     --pad-x: 16px;
+  }
+
+  :root:not([data-theme-effective="dark"]) {
     --ink-muted: #6f6f6f;
     --ink-faded: #767676;
   }
@@ -292,6 +328,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-wrap: break-word;
+  transition: background-color var(--dur-ui) var(--ease), color var(--dur-ui) var(--ease);
 }
 
 body.is-locked {
@@ -429,8 +466,8 @@ body.is-locked {
 
 .pill--ghost:hover {
   opacity: 1;
-  border-color: rgba(0, 0, 0, 0.3);
-  background: rgba(0, 0, 0, 0.025);
+  border-color: var(--hover-border);
+  background: var(--hover-wash);
 }
 
 .pill--ghost:active {
@@ -465,6 +502,36 @@ body.is-locked {
 
 .chip:active {
   transform: scale(0.97);
+}
+
+.theme-toggle {
+  min-width: 76px;
+  justify-content: center;
+}
+
+.theme-toggle__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  font-size: 15px;
+  line-height: 1;
+}
+
+@media (max-width: 720px) {
+  .theme-toggle {
+    min-width: 34px;
+    padding-inline: 9px !important;
+  }
+
+  .theme-toggle__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 
 .chip__sep {

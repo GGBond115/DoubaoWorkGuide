@@ -224,7 +224,7 @@
 
 .rail__toggle:hover {
   color: var(--black);
-  border-color: rgba(0, 0, 0, 0.28);
+  border-color: var(--hover-border);
 }
 
 .rail__toggle svg {
@@ -327,13 +327,13 @@ details[open] > .rail__sum .rail__chev {
 
 .rail__link:hover {
   color: var(--black);
-  background: rgba(0, 0, 0, 0.035);
+  background: var(--hover-wash);
 }
 
 .rail__link.is-current {
   color: var(--ink);
   font-weight: var(--w-medium);
-  background: rgba(26, 47, 247, 0.055);
+  background: color-mix(in srgb, var(--brand-blue) 10%, transparent);
 }
 
 .rail__link.is-current::before {
@@ -356,7 +356,7 @@ details[open] > .rail__sum .rail__chev {
   padding: 13px 8px;
   border: 1px solid var(--hairline);
   border-radius: 999px;
-  background: var(--bg, #fff);
+  background: var(--surface);
   color: var(--ink-muted);
   cursor: pointer;
   transition: color var(--dur-ui) var(--ease), border-color var(--dur-ui) var(--ease),
@@ -376,8 +376,8 @@ details[open] > .rail__sum .rail__chev {
 
 .rail__fab:hover {
   color: var(--black);
-  border-color: rgba(0, 0, 0, 0.28);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  border-color: var(--hover-border);
+  box-shadow: var(--shadow-subtle);
 }
 
 .rail.is-collapsed {
@@ -396,10 +396,10 @@ details[open] > .rail__sum .rail__chev {
   left: 0;
   width: 100%;
   padding: var(--s-12) var(--s-10, 10px) var(--s-16);
-  background: var(--bg, #fff);
+  background: var(--surface);
   border: 1px solid var(--hairline);
   border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 16px 40px rgba(0, 0, 0, 0.09);
+  box-shadow: var(--shadow-subtle);
   visibility: hidden;
   opacity: 0;
   transform: translateX(-6px);
