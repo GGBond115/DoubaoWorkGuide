@@ -186,23 +186,27 @@ a {
   --wash: rgba(0, 0, 0, 0.04);
   --hover-border: rgba(0, 0, 0, 0.3);
   --hover-wash: rgba(0, 0, 0, 0.025);
-  /* 站内唯一的色彩，来自豆包标志本身。
-     用途克制：标志、行内链接、重点下划、小节记号，不做大面积填充 */
-  --brand-blue: #1a2ff7;
-  --brand-fill: #1a2ff7;
-  --brand-cyan: #00c8fb;
+  /* 全站唯一的品牌色源：豆包 Logo 五阶蓝。
+     组件只引用语义别名，后续不再各自维护近似蓝、紫蓝或藏青。 */
+  --doubao-deep: #0863f5;
+  --doubao-primary: #1674fc;
+  --doubao-mid: #429afc;
+  --doubao-light: #79c4fc;
+  --doubao-highlight: #c6eefc;
+  /* 白底链接与白字按钮使用深蓝，以保持至少 4.5:1 的正文对比度。 */
+  --brand-blue: var(--doubao-deep);
+  --brand-fill: var(--doubao-deep);
+  --brand-cyan: var(--doubao-light);
   --grad-brand: linear-gradient(var(--brand-cyan), var(--brand-blue));
-  /* 首页封面直接取自豆包 Logo：深蓝主体、亮蓝过渡和浅青高光。
-     高光只放在空白区域，中心阅读区仍由深蓝托住白字。 */
-  --cover-blue-deep: #0863f5;
-  --cover-blue: #1674fc;
-  --cover-blue-light: #79c4fc;
-  --cover-blue-tail: #429afc;
-  --cover-highlight: #c6eefc;
-  --cover-ink: #17375e;
-  --cover-accent: #2d88fc;
-  --cover-cyan: #b3e5fb;
-  --cover-foreground: #f4f8fc;
+  --cover-blue-deep: var(--doubao-deep);
+  --cover-blue: var(--doubao-primary);
+  --cover-blue-light: var(--doubao-light);
+  --cover-blue-tail: var(--doubao-mid);
+  --cover-highlight: var(--doubao-highlight);
+  --cover-ink: var(--doubao-deep);
+  --cover-accent: var(--doubao-mid);
+  --cover-cyan: var(--doubao-highlight);
+  --cover-foreground: #ffffff;
   /* 荧光笔：只压在文字下沿，不碰行距 */
   --marker: color-mix(in srgb, var(--brand-cyan) 20%, transparent);
 
@@ -263,29 +267,21 @@ a {
 
 :root[data-theme-effective="dark"] {
   color-scheme: dark;
-  --canvas: #111318;
-  --surface: #191c23;
-  --black: #f5f7fb;
-  --ink: #e7eaf0;
-  --ink-muted: #aab0bc;
-  --ink-faded: #8f97a6;
-  --hairline: rgba(255, 255, 255, 0.12);
-  --hairline-strong: rgba(255, 255, 255, 0.24);
-  --wash: rgba(255, 255, 255, 0.07);
-  --hover-border: rgba(255, 255, 255, 0.34);
-  --hover-wash: rgba(255, 255, 255, 0.06);
-  --brand-blue: #7f96ff;
-  --brand-fill: #324bd6;
-  --brand-cyan: #45d7ff;
-  --cover-blue-deep: #061d55;
-  --cover-blue: #093c9b;
-  --cover-blue-light: #1764bd;
-  --cover-blue-tail: #0d4a9e;
-  --cover-highlight: #163b63;
-  --cover-ink: #d9e9ff;
-  --cover-accent: #74a8ff;
-  --cover-cyan: #61caed;
-  --cover-foreground: #f4f8fc;
+  /* 蓝黑画布由 Logo 深蓝压暗而来；表面与文字也保持冷蓝倾向。 */
+  --canvas: #06152f;
+  --surface: #0b2042;
+  --black: #f4f8ff;
+  --ink: #dfedff;
+  --ink-muted: #a7c1e3;
+  --ink-faded: #7f9fc9;
+  --hairline: color-mix(in srgb, var(--doubao-highlight) 14%, transparent);
+  --hairline-strong: color-mix(in srgb, var(--doubao-highlight) 26%, transparent);
+  --wash: color-mix(in srgb, var(--doubao-light) 8%, transparent);
+  --hover-border: color-mix(in srgb, var(--doubao-highlight) 38%, transparent);
+  --hover-wash: color-mix(in srgb, var(--doubao-light) 7%, transparent);
+  --brand-blue: var(--doubao-light);
+  --brand-fill: var(--doubao-deep);
+  --brand-cyan: var(--doubao-highlight);
   --shadow-subtle: rgba(0, 0, 0, 0.36) 0px 1px 1px -0.5px,
     rgba(0, 0, 0, 0.32) 0px 3px 3px -1.5px, rgba(0, 0, 0, 0.28) 0px 6px 6px -3px,
     rgba(0, 0, 0, 0.24) 0px 12px 12px -6px, rgba(0, 0, 0, 0.2) 0px 24px 24px -12px;

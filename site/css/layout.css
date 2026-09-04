@@ -869,19 +869,18 @@ body.is-home .view {
 }
 
 /* ------------------------------------------------------------
-   书封下的落地版块：浅色制图纸 + 深描边硬阴影卡片。
-   蓝图语言的浅色面：白卡、1px 深线、右下实心投影、蓝色小标签
+   书封下的落地版块：Logo 高光蓝制图纸 + 深蓝硬线卡片。
    ------------------------------------------------------------ */
 
 .lp {
-  --lp-line: #1e2a52; /* 深藏青：描边与硬阴影 */
-  --lp-canvas: #eef2fa;
+  --lp-line: var(--doubao-deep);
+  --lp-canvas: color-mix(in srgb, var(--doubao-highlight) 28%, #ffffff);
   --lp-card: #ffffff;
-  --lp-grid-line: rgba(30, 42, 82, 0.06);
-  --lp-side-note: rgba(30, 42, 82, 0.35);
-  --lp-tape: rgba(255, 255, 255, 0.8);
-  --lp-ghost-number: rgba(30, 42, 82, 0.045);
-  --lp-hatch: rgba(30, 42, 82, 0.3);
+  --lp-grid-line: color-mix(in srgb, var(--doubao-mid) 11%, transparent);
+  --lp-side-note: color-mix(in srgb, var(--doubao-deep) 42%, transparent);
+  --lp-tape: color-mix(in srgb, var(--doubao-highlight) 72%, #ffffff);
+  --lp-ghost-number: color-mix(in srgb, var(--doubao-deep) 5%, transparent);
+  --lp-hatch: color-mix(in srgb, var(--doubao-mid) 38%, transparent);
   position: relative;
   padding: 104px var(--pad-x) 0;
   background-color: var(--lp-canvas);
@@ -892,14 +891,14 @@ body.is-home .view {
 }
 
 :root[data-theme-effective="dark"] .lp {
-  --lp-line: #aebbd8;
-  --lp-canvas: #111722;
-  --lp-card: #1a202c;
-  --lp-grid-line: rgba(174, 187, 216, 0.08);
-  --lp-side-note: rgba(210, 220, 241, 0.42);
-  --lp-tape: rgba(126, 150, 255, 0.14);
-  --lp-ghost-number: rgba(210, 220, 241, 0.055);
-  --lp-hatch: rgba(174, 187, 216, 0.34);
+  --lp-line: var(--doubao-light);
+  --lp-canvas: var(--canvas);
+  --lp-card: var(--surface);
+  --lp-grid-line: color-mix(in srgb, var(--doubao-light) 10%, transparent);
+  --lp-side-note: color-mix(in srgb, var(--doubao-highlight) 46%, transparent);
+  --lp-tape: color-mix(in srgb, var(--doubao-mid) 17%, transparent);
+  --lp-ghost-number: color-mix(in srgb, var(--doubao-highlight) 6%, transparent);
+  --lp-hatch: color-mix(in srgb, var(--doubao-light) 38%, transparent);
 }
 
 .lp__section {
@@ -1175,7 +1174,7 @@ body.is-home .view {
 
 @media (hover: hover) and (pointer: fine) {
   .lp__file:hover::after {
-    color: rgba(26, 47, 247, 0.12);
+    color: color-mix(in srgb, var(--doubao-primary) 12%, transparent);
   }
 }
 
@@ -1265,7 +1264,7 @@ body.is-home .view {
   margin-top: var(--s-32);
 }
 
-/* 蓝页页脚：直接延续封面蓝，而不是另起一块藏青色。 */
+/* 蓝页页脚：深蓝底保证白字可读，中蓝光晕延续 Logo 的空间感。 */
 .lp__foot {
   display: flex;
   flex-wrap: wrap;
@@ -1278,8 +1277,9 @@ body.is-home .view {
   background-color: var(--cover-blue-deep);
   background-image: linear-gradient(rgba(244, 248, 252, 0.055) 1px, transparent 1px),
     linear-gradient(90deg, rgba(244, 248, 252, 0.055) 1px, transparent 1px),
-    linear-gradient(128deg, var(--brand-fill), var(--cover-blue-deep));
-  background-size: 36px 36px, 36px 36px, auto;
+    radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--doubao-mid) 32%, transparent), transparent 42%),
+    linear-gradient(128deg, var(--doubao-deep), var(--doubao-deep));
+  background-size: 36px 36px, 36px 36px, auto, auto;
   color: rgba(255, 255, 255, 0.72);
 }
 
