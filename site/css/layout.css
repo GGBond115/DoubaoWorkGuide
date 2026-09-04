@@ -284,10 +284,8 @@ body.is-home .masthead {
   display: none;
 }
 
-/* 蓝底区域的键盘焦点：黑色环看不清，换白色 */
-.bookcover :is(a, button):focus-visible,
-.lp__cta :is(a, button):focus-visible,
-.lp__foot :is(a, button):focus-visible {
+/* 深色书封上的键盘焦点：黑色环看不清，换白色 */
+.bookcover :is(a, button):focus-visible {
   outline: 2px solid var(--cover-foreground);
   outline-offset: 3px;
 }
@@ -869,11 +867,16 @@ body.is-home .view {
 }
 
 /* ------------------------------------------------------------
-   书封下的落地版块：Logo 高光蓝制图纸 + 深蓝硬线卡片。
+   书封下的落地版块：Logo 高光蓝制图纸 + 轻量蓝灰硬线卡片。
    ------------------------------------------------------------ */
 
 .lp {
-  --lp-line: var(--doubao-deep);
+  --lp-ink: var(--brand-ink);
+  --lp-line: var(--doubao-mid);
+  --lp-accent-ink: var(--brand-ink);
+  --lp-accent-soft: var(--doubao-highlight);
+  --lp-accent: var(--doubao-light);
+  --lp-accent-strong: var(--doubao-mid);
   --lp-canvas: color-mix(in srgb, var(--doubao-highlight) 28%, #ffffff);
   --lp-card: #ffffff;
   --lp-grid-line: color-mix(in srgb, var(--doubao-mid) 11%, transparent);
@@ -891,6 +894,7 @@ body.is-home .view {
 }
 
 :root[data-theme-effective="dark"] .lp {
+  --lp-ink: var(--doubao-highlight);
   --lp-line: var(--doubao-light);
   --lp-canvas: var(--canvas);
   --lp-card: var(--surface);
@@ -918,8 +922,9 @@ body.is-home .view {
 .lp__index {
   display: inline-block;
   padding: 4px 10px;
-  background: var(--brand-fill);
-  color: #fff;
+  background-color: var(--lp-accent);
+  background-image: linear-gradient(110deg, var(--lp-accent-soft), var(--lp-accent));
+  color: var(--lp-accent-ink);
   font-size: 11px;
   font-weight: var(--w-semibold);
   letter-spacing: 0.14em;
@@ -930,15 +935,15 @@ body.is-home .view {
   font-size: 12px;
   font-weight: var(--w-medium);
   letter-spacing: 0.08em;
-  color: var(--lp-line);
+  color: var(--lp-ink);
   border-bottom: 1px solid transparent;
   font-variant-numeric: tabular-nums;
   transition: color var(--dur-ui) var(--ease), border-color var(--dur-ui) var(--ease);
 }
 
 .lp__more:hover {
-  color: var(--brand-blue);
-  border-bottom-color: var(--brand-blue);
+  color: var(--doubao-primary);
+  border-bottom-color: var(--lp-accent-strong);
 }
 
 .lp__head-row {
@@ -957,7 +962,7 @@ body.is-home .view {
   font-weight: var(--w-semibold);
   line-height: 1.15;
   letter-spacing: -0.01em;
-  color: var(--lp-line);
+  color: var(--lp-ink);
 }
 
 .lp__lede {
@@ -1036,12 +1041,13 @@ body.is-home .view {
 .lp__tag {
   align-self: flex-start;
   padding: 3px 8px;
-  border: 1px solid var(--lp-line);
+  border: 1px solid var(--lp-accent-strong);
   border-radius: 2px;
+  background: color-mix(in srgb, var(--doubao-highlight) 68%, #ffffff);
   font-size: 11px;
   font-weight: var(--w-medium);
   letter-spacing: 0.12em;
-  color: var(--lp-line);
+  color: var(--lp-accent-ink);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1059,16 +1065,16 @@ body.is-home .view {
   border-radius: 2px;
   font-size: 11px;
   font-weight: var(--w-semibold);
-  color: var(--lp-line);
+  color: var(--lp-ink);
   font-variant-numeric: tabular-nums;
   transition: background var(--dur-ui) var(--ease), color var(--dur-ui) var(--ease);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .lp__card:hover .lp__stamp {
-    background: var(--brand-fill);
-    border-color: var(--brand-fill);
-    color: #fff;
+    background: var(--lp-accent);
+    border-color: var(--lp-accent-strong);
+    color: var(--lp-accent-ink);
   }
 }
 
@@ -1079,13 +1085,13 @@ body.is-home .view {
   font-size: 1.1875rem;
   font-weight: var(--w-semibold);
   line-height: 1.4;
-  color: var(--lp-line);
+  color: var(--lp-ink);
   transition: color var(--dur-ui) var(--ease);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .lp__card:hover .lp__task-title {
-    color: var(--brand-blue);
+    color: var(--doubao-primary);
   }
 }
 
@@ -1121,16 +1127,16 @@ body.is-home .view {
   border: 1px solid var(--lp-line);
   border-radius: 2px;
   font-size: 15px;
-  color: var(--lp-line);
+  color: var(--lp-ink);
   transition: background var(--dur-ui) var(--ease), color var(--dur-ui) var(--ease),
     transform var(--dur-ui) var(--ease-out);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .lp__card:hover .lp__arrow {
-    background: var(--brand-fill);
-    border-color: var(--brand-fill);
-    color: #fff;
+    background: var(--lp-accent);
+    border-color: var(--lp-accent-strong);
+    color: var(--lp-accent-ink);
     transform: translateX(3px);
   }
 }
@@ -1149,7 +1155,7 @@ body.is-home .view {
 
 .lp__task:nth-child(even) .lp__tape {
   transform: rotate(-14deg);
-  border-color: var(--brand-blue);
+  border-color: var(--lp-accent-strong);
 }
 
 /* 档案卡：FILE 标签 + 粗规线 + 左缘蓝色索引舌片 + 右下幽灵大编号 */
@@ -1185,12 +1191,12 @@ body.is-home .view {
   left: -7px;
   width: 7px;
   height: 30px;
-  background: var(--brand-blue);
+  background: var(--lp-accent-strong);
   border: 1px solid var(--lp-line);
 }
 
 .lp__tag--file {
-  color: var(--lp-line);
+  color: var(--lp-accent-ink);
 }
 
 .lp__rule {
@@ -1203,7 +1209,7 @@ body.is-home .view {
 .lp__file-title {
   font-size: 1.5rem;
   font-weight: var(--w-semibold);
-  color: var(--lp-line);
+  color: var(--lp-ink);
 }
 
 .lp__file-desc {
@@ -1229,16 +1235,23 @@ body.is-home .view {
   border-bottom: 1px solid var(--lp-hatch);
 }
 
-/* 收尾 CTA：回到品牌蓝，首尾同色 */
+/* 收尾 CTA：使用 Logo 高光面的浅蓝渐变，避免大面积电光深蓝。 */
 .lp__cta {
   margin: 0 calc(-1 * var(--pad-x));
   padding: 104px var(--pad-x);
-  background-color: var(--brand-fill);
-  background-image: linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px);
-  background-size: 44px 44px;
+  background-color: var(--lp-accent-strong);
+  background-image: linear-gradient(color-mix(in srgb, var(--lp-accent-ink) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--lp-accent-ink) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(120deg, var(--lp-accent-soft), var(--lp-accent) 58%, var(--lp-accent-strong));
+  background-size: 44px 44px, 44px 44px, auto;
   text-align: center;
-  color: #fff;
+  color: var(--lp-accent-ink);
+}
+
+.lp__cta :is(a, button):focus-visible,
+.lp__foot :is(a, button):focus-visible {
+  outline: 2px solid var(--lp-accent-ink);
+  outline-offset: 3px;
 }
 
 .lp__cta-kicker {
@@ -1246,7 +1259,7 @@ body.is-home .view {
   font-size: 11px;
   font-weight: var(--w-medium);
   letter-spacing: 0.24em;
-  color: rgba(255, 255, 255, 0.65);
+  color: color-mix(in srgb, var(--lp-accent-ink) 68%, transparent);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1264,7 +1277,23 @@ body.is-home .view {
   margin-top: var(--s-32);
 }
 
-/* 蓝页页脚：深蓝底保证白字可读，中蓝光晕延续 Logo 的空间感。 */
+.lp__cta .bcbtn--solid {
+  background: color-mix(in srgb, #ffffff 88%, var(--lp-accent-soft));
+  color: var(--lp-accent-ink);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lp-accent-ink) 16%, transparent);
+}
+
+.lp__cta .bcbtn--ghost {
+  border-color: color-mix(in srgb, var(--lp-accent-ink) 42%, transparent);
+  color: var(--lp-accent-ink);
+}
+
+.lp__cta .bcbtn--ghost:hover {
+  border-color: color-mix(in srgb, var(--lp-accent-ink) 72%, transparent);
+  background: color-mix(in srgb, #ffffff 18%, transparent);
+}
+
+/* 页脚延续 Logo 的浅蓝到中蓝色带，使用深蓝灰文字保证可读性。 */
 .lp__foot {
   display: flex;
   flex-wrap: wrap;
@@ -1273,21 +1302,21 @@ body.is-home .view {
   gap: var(--s-12) var(--s-24);
   margin: 0 calc(-1 * var(--pad-x));
   padding: 26px var(--pad-x);
-  border-top: 1px solid color-mix(in srgb, var(--cover-cyan) 42%, transparent);
-  background-color: var(--cover-blue-deep);
-  background-image: linear-gradient(rgba(244, 248, 252, 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(244, 248, 252, 0.055) 1px, transparent 1px),
-    radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--doubao-mid) 32%, transparent), transparent 42%),
-    linear-gradient(128deg, var(--doubao-deep), var(--doubao-deep));
+  border-top: 1px solid color-mix(in srgb, var(--lp-accent-ink) 18%, transparent);
+  background-color: var(--lp-accent);
+  background-image: linear-gradient(color-mix(in srgb, var(--lp-accent-ink) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--lp-accent-ink) 7%, transparent) 1px, transparent 1px),
+    radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--lp-accent-soft) 76%, transparent), transparent 42%),
+    linear-gradient(128deg, var(--lp-accent), var(--lp-accent-strong));
   background-size: 36px 36px, 36px 36px, auto, auto;
-  color: rgba(255, 255, 255, 0.72);
+  color: color-mix(in srgb, var(--lp-accent-ink) 74%, transparent);
 }
 
 .lp__foot-sig {
   font-size: 10px;
   font-weight: var(--w-medium);
   letter-spacing: 0.3em;
-  color: rgba(255, 255, 255, 0.45);
+  color: color-mix(in srgb, var(--lp-accent-ink) 55%, transparent);
 }
 
 .lp__foot-links {
@@ -1299,12 +1328,12 @@ body.is-home .view {
 }
 
 .lp__foot-links a {
-  color: #fff;
+  color: var(--lp-accent-ink);
   transition: color var(--dur-ui) var(--ease);
 }
 
 .lp__foot-links a:hover {
-  color: #fff;
+  color: var(--doubao-deep);
 }
 
 .lp__foot-git svg {
@@ -1316,7 +1345,7 @@ body.is-home .view {
 
 .lp__foot-copy {
   font-size: var(--t-caption);
-  color: rgba(255, 255, 255, 0.45);
+  color: color-mix(in srgb, var(--lp-accent-ink) 55%, transparent);
 }
 
 /* 友链：页脚里独占一行，宽字距小标 + 淡色链接 */
@@ -1328,7 +1357,7 @@ body.is-home .view {
   gap: var(--s-8) var(--s-24);
   margin-top: var(--s-8);
   padding-top: var(--s-16);
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: 1px solid color-mix(in srgb, var(--lp-accent-ink) 16%, transparent);
   font-size: var(--t-caption);
   font-weight: var(--w-medium);
 }
@@ -1336,16 +1365,16 @@ body.is-home .view {
 .lp__foot-friends-label {
   font-size: 10px;
   letter-spacing: 0.3em;
-  color: rgba(255, 255, 255, 0.4);
+  color: color-mix(in srgb, var(--lp-accent-ink) 52%, transparent);
 }
 
 .lp__foot-friends a {
-  color: rgba(255, 255, 255, 0.55);
+  color: color-mix(in srgb, var(--lp-accent-ink) 72%, transparent);
   transition: color var(--dur-ui) var(--ease);
 }
 
 .lp__foot-friends a:hover {
-  color: #fff;
+  color: var(--doubao-deep);
 }
 
 /* 滚动进场：进视口后升起；同排卡片按位置错开 */

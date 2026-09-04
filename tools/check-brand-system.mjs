@@ -57,6 +57,7 @@ try {
       const footer = getComputedStyle(document.querySelector(".lp__foot"));
       return {
         theme: document.documentElement.dataset.themeEffective,
+        brandInk: value("--brand-ink"),
         tokens: {
           deep: value("--doubao-deep"),
           primary: value("--doubao-primary"),
@@ -86,6 +87,7 @@ try {
 
   const light = await readBrandSystem();
   assert.deepEqual(light.tokens, EXPECTED, "全站应定义且只从五个豆包 Logo 品牌色派生");
+  assert.equal(light.brandInk, "#06152f", "浅蓝大色块应共用同一个高对比蓝黑文字色");
   assert.deepEqual(
     light.aliases,
     {
@@ -100,10 +102,12 @@ try {
     },
     "首页封面与通用组件应共用同一套 Logo 色阶"
   );
-  assert.equal(light.lpLine, EXPECTED.deep, "首页制图纸描边不应继续使用旧藏青色");
-  assert.equal(light.ctaBackground, "rgb(8, 99, 245)", "首页主操作区应使用可承载白字的 Logo 深蓝");
+  assert.equal(light.lpLine, EXPECTED.mid, "首页制图纸描边应直接使用 Logo 中蓝");
+  assert.equal(light.ctaBackground, "rgb(66, 154, 252)", "首页主操作区应直接使用 Logo 中蓝");
   assert.ok(contrast(light.ctaBackground, light.ctaText) >= 4.5, "日间 CTA 应达到 4.5:1 对比度");
   assert.doesNotMatch(light.footerBackground, /rgb\(26, 47, 247\)/, "页脚不得残留旧品牌蓝");
+  assert.match(light.footerBackground, /rgb\(121, 196, 252\)/, "页脚应明确使用 Logo 浅蓝");
+  assert.match(light.footerBackground, /rgb\(66, 154, 252\)/, "页脚应明确使用 Logo 中蓝");
 
   await page.evaluate(() => {
     localStorage.setItem("dwg.theme", "dark");
@@ -113,6 +117,7 @@ try {
   const dark = await readBrandSystem();
   assert.equal(dark.theme, "dark", "测试应进入固定暗色主题");
   assert.deepEqual(dark.tokens, EXPECTED, "暗色主题也应保留同一组 Logo 原色，不另造紫蓝色阶");
+  assert.equal(dark.brandInk, "#06152f");
   assert.deepEqual(dark.aliases, {
     brandText: EXPECTED.light,
     brandFill: EXPECTED.deep,

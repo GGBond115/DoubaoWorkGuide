@@ -193,6 +193,7 @@ a {
   --doubao-mid: #429afc;
   --doubao-light: #79c4fc;
   --doubao-highlight: #c6eefc;
+  --brand-ink: #06152f;
   /* 白底链接与白字按钮使用深蓝，以保持至少 4.5:1 的正文对比度。 */
   --brand-blue: var(--doubao-deep);
   --brand-fill: var(--doubao-deep);
@@ -268,7 +269,7 @@ a {
 :root[data-theme-effective="dark"] {
   color-scheme: dark;
   /* 蓝黑画布由 Logo 深蓝压暗而来；表面与文字也保持冷蓝倾向。 */
-  --canvas: #06152f;
+  --canvas: var(--brand-ink);
   --surface: #0b2042;
   --black: #f4f8ff;
   --ink: #dfedff;
