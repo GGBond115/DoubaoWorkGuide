@@ -326,6 +326,19 @@ body.is-home .view {
   backface-visibility: hidden;
 }
 
+/* 夜间保持 Logo 的冷蓝方向，亮色只作为边缘微光。 */
+:root[data-theme-effective="dark"] .bookcover {
+  background-color: var(--brand-ink);
+  background-image:
+    radial-gradient(ellipse at 12% 8%, color-mix(in srgb, var(--doubao-light) 12%, transparent), transparent 48%),
+    radial-gradient(ellipse at 90% 90%, color-mix(in srgb, var(--doubao-mid) 10%, transparent), transparent 48%),
+    linear-gradient(118deg, var(--surface), var(--brand-ink) 55%, var(--surface));
+}
+
+:root[data-theme-effective="dark"] .bookcover__lamp {
+  filter: opacity(0.35);
+}
+
 /* 制图纸网格：独立图层，入场铺开 + 指针视差（transform 由 JS 直接写） */
 .bookcover__grid {
   position: absolute;
@@ -367,8 +380,7 @@ body.is-home .view {
   }
 }
 
-/* 场景词注记：桌上的事散落在图纸上，铅笔稿般的淡白小字，
-   台灯扫过时按距离点亮（color 由 JS 每帧写入） */
+/* 注记有独立的深色底，亮蓝高光经过时仍能读清。 */
 .bookcover__notes {
   position: absolute;
   inset: 0;
@@ -377,6 +389,7 @@ body.is-home .view {
 
 .bc-note {
   position: absolute;
+  top: min(var(--note-y), calc(100% - 225px));
   transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
@@ -384,7 +397,12 @@ body.is-home .view {
   font-size: 12px;
   letter-spacing: 0.14em;
   white-space: nowrap;
-  color: rgba(244, 248, 252, 0.14);
+  color: #ffffff;
+  padding: 5px 9px;
+  border-radius: 6px;
+  border: 1px solid rgba(198, 238, 252, 0.24);
+  background: color-mix(in srgb, var(--brand-ink) 68%, transparent);
+  box-shadow: 0 0 0 1px rgb(198 238 252 / calc(var(--note-glow, 0) * 0.35));
   animation: bc-fade 600ms var(--ease-out) both;
   animation-delay: calc(950ms + var(--i) * 80ms);
 }
@@ -529,7 +547,7 @@ body.is-home .view {
   gap: var(--s-16);
   font-size: var(--t-caption);
   font-weight: var(--w-medium);
-  color: rgba(244, 248, 252, 0.66);
+  color: var(--cover-foreground);
 }
 
 .bookcover__kicker-text {
@@ -583,7 +601,7 @@ body.is-home .view {
   margin-top: var(--s-24);
   font-size: clamp(1rem, 2vw, 1.125rem);
   line-height: 1.8;
-  color: rgba(244, 248, 252, 0.8);
+  color: var(--cover-foreground);
 }
 
 .bookcover__actions {
@@ -634,7 +652,7 @@ body.is-home .view {
 .bookcover__resume {
   margin-top: var(--s-24);
   font-size: var(--t-caption);
-  color: rgba(244, 248, 252, 0.72);
+  color: var(--cover-foreground);
   text-decoration: underline;
   text-underline-offset: 0.3em;
   text-decoration-color: color-mix(in srgb, var(--cover-cyan) 42%, transparent);
@@ -648,12 +666,33 @@ body.is-home .view {
 /* 图例栏：49 篇标题匀速滚动，像图纸边缘的图例；hover 暂停细读 */
 .bookcover__ticker {
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   overflow: hidden;
   margin: 0 calc(-1 * var(--pad-x)) var(--s-24);
   padding: 12px 0;
   border-top: 1px solid color-mix(in srgb, var(--cover-cyan) 16%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--cover-cyan) 16%, transparent);
   animation: bc-fade 700ms var(--ease-out) 950ms backwards;
+  background: color-mix(in srgb, var(--brand-ink) 60%, transparent);
+}
+
+.bookcover__ticker-window {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.bookcover__ticker-toggle {
+  flex: none;
+  margin-right: var(--pad-x);
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid rgba(198, 238, 252, 0.45);
+  border-radius: var(--radius-full);
+  color: #fff;
+  font-size: 12px;
 }
 
 .bookcover__ticker-track {
@@ -662,7 +701,9 @@ body.is-home .view {
   animation: bc-ticker 120s linear infinite;
 }
 
-.bookcover__ticker:hover .bookcover__ticker-track {
+.bookcover__ticker-window:hover .bookcover__ticker-track,
+.bookcover__ticker-window:focus-within .bookcover__ticker-track,
+.bookcover__ticker[data-paused="true"] .bookcover__ticker-track {
   animation-play-state: paused;
 }
 
@@ -670,7 +711,7 @@ body.is-home .view {
   white-space: nowrap;
   font-size: 12px;
   letter-spacing: 0.08em;
-  color: rgba(244, 248, 252, 0.46);
+  color: var(--cover-foreground);
 }
 
 /* 跑马灯里的每条篇目都是入口：hover 暂停轨道、当前条点亮 */
@@ -700,13 +741,13 @@ body.is-home .view {
 .bookcover__hint {
   font-size: 12px;
   letter-spacing: 0.1em;
-  color: rgba(244, 248, 252, 0.52);
+  color: var(--cover-foreground);
 }
 
 .bookcover__stats {
   font-size: 13px;
   letter-spacing: 0.05em;
-  color: rgba(244, 248, 252, 0.58);
+  color: var(--cover-foreground);
   font-variant-numeric: tabular-nums; /* 数字滚动时宽度不抖 */
 }
 
@@ -811,7 +852,13 @@ body.is-home .view {
     animation-delay: 0ms;
   }
   .bookcover__ticker-track {
-    animation: none; /* 图例静止展示开头几篇 */
+    animation: none; /* 减少动态时允许手动横向浏览全部篇目 */
+  }
+  .bookcover__ticker-window {
+    overflow-x: auto;
+  }
+  .bookcover__ticker-track > [aria-hidden="true"] {
+    display: none;
   }
   .bookcover__lamp {
     display: none;
@@ -1377,6 +1424,23 @@ body.is-home .view {
   color: var(--doubao-deep);
 }
 
+/* 夜间的大色块与正文一起降亮，品牌蓝留给边线和主操作。 */
+:root[data-theme-effective="dark"] :is(.lp__cta, .lp__foot) {
+  --lp-accent-ink: var(--doubao-highlight);
+  background-color: var(--surface);
+  background-image: linear-gradient(color-mix(in srgb, var(--doubao-light) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--doubao-light) 6%, transparent) 1px, transparent 1px);
+}
+
+:root[data-theme-effective="dark"] .lp__cta .bcbtn--solid {
+  background: var(--doubao-light);
+  color: var(--brand-ink);
+}
+
+:root[data-theme-effective="dark"] .lp__foot a:hover {
+  color: var(--doubao-light);
+}
+
 /* 滚动进场：进视口后升起；同排卡片按位置错开 */
 @keyframes lp-rise {
   from {
@@ -1687,7 +1751,7 @@ body.is-home .view {
   align-items: center;
   justify-content: space-between;
   gap: var(--s-16);
-  padding: var(--s-16) 2px;
+  padding: var(--s-16) 2px 24px;
   border-bottom: 1px solid var(--hairline);
 }
 
@@ -1724,19 +1788,18 @@ body.is-home .view {
   flex: none;
   font-size: var(--t-caption);
   font-weight: var(--w-medium);
-  color: var(--ink-faded);
+  color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .entry__read {
-  color: var(--ink-muted);
+  color: var(--brand-blue);
 }
 
 .entry__arrow {
   color: var(--brand-blue);
-  opacity: 0;
-  transform: translateX(-4px);
+  opacity: 0.7;
   transition: opacity var(--dur-ui) var(--ease), transform var(--dur-ui) var(--ease-out);
 }
 
@@ -1745,11 +1808,20 @@ body.is-home .view {
   transform: none;
 }
 
-.entry__bar {
+.entry__progress {
   position: absolute;
   left: 0;
-  bottom: -1px;
-  height: 2px;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--wash);
+  overflow: hidden;
+  border-radius: 3px;
+}
+
+.entry__bar {
+  display: block;
+  height: 100%;
   background: var(--brand-blue);
   pointer-events: none;
 }
@@ -1758,6 +1830,9 @@ body.is-home .view {
   .entry {
     flex-wrap: wrap;
     row-gap: var(--s-8);
+  }
+  .entry__main {
+    flex-basis: 100%;
   }
   .entry__arrow {
     display: none;

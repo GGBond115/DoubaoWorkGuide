@@ -5,7 +5,7 @@
    导航靠页眉右上的胶囊、目录页，以及每篇文末的下一节链接。
    ============================================================ */
 
-import { renderMarkdown, escapeHtml, plainText } from "./markdown.js?v=20260904-2";
+import { renderMarkdown, escapeHtml, plainText } from "./markdown.js?v=20260905-1";
 
 const READ_KEY = "dwg.read";
 const RESUME_KEY = "dwg.resume";
@@ -13,7 +13,7 @@ const RAIL_KEY = "dwg.rail"; /* 左侧章节目录："1" 固定展开，其余�
 const THEME_KEY = "dwg.theme";
 const THEME_ORDER = ["system", "light", "dark"];
 const ASSET_VERSION =
-  document.querySelector('meta[name="dwg-assets-version"]')?.content || "20260904-2";
+  document.querySelector('meta[name="dwg-assets-version"]')?.content || "20260905-1";
 const versionedAsset = (path) => `${path}?v=${encodeURIComponent(ASSET_VERSION)}`;
 
 const dom = {
@@ -293,6 +293,18 @@ function countRead(node) {
   return total;
 }
 
+function readingProgress(node) {
+  const total = countLeaves(node);
+  const read = countRead(node);
+  const pct = total ? read / total * 100 : 0;
+  const label = total && read === total ? "已全部读过" : read ? `已读 ${read} / ${total}` : "尚未开始";
+  return {
+    total,
+    label: `<span class="entry__read">${label}</span>`,
+    bar: `<span class="entry__progress" role="progressbar" aria-label="${escapeHtml(node.title)}阅读进度" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${read}" aria-valuetext="${read} / ${total} 篇已读"><span class="entry__bar" style="width:${pct}%"></span></span>`,
+  };
+}
+
 function docMeta(doc) {
   const bits = [];
   if (imageCount(doc)) bits.push(`${imageCount(doc)} 图`);
@@ -409,7 +421,7 @@ function viewLanding() {
         <div class="bookcover__lamp" aria-hidden="true"></div>
         <div class="bookcover__notes" aria-hidden="true">${COVER_NOTES.map(
           ([text, x, y], i) =>
-            `<span class="bc-note" style="left:${x}%;top:${y}%;--i:${i}">${escapeHtml(text)}</span>`
+            `<span class="bc-note" style="left:${x}%;--note-y:${y}%;--i:${i}">${escapeHtml(text)}</span>`
         ).join("")}</div>
         <div class="bookcover__spine" aria-hidden="true"><span>豆包工作蓝皮书 · 第一版 · 2026</span></div>
         <span class="bookcover__reg bookcover__reg--tl" aria-hidden="true"></span>
@@ -447,7 +459,10 @@ function viewLanding() {
         </div>
 
         <div class="bookcover__ticker" aria-label="全部篇目速览">
-          <div class="bookcover__ticker-track"><span>${tickerText}　◦　</span><span aria-hidden="true">${tickerText}　◦　</span></div>
+          <div class="bookcover__ticker-window">
+            <div class="bookcover__ticker-track"><span>${tickerText}　◦　</span><span aria-hidden="true">${tickerText.replaceAll('<a ', '<a tabindex="-1" ')}　◦　</span></div>
+          </div>
+          <button type="button" class="bookcover__ticker-toggle" data-ticker-toggle aria-pressed="false">暂停滚动</button>
         </div>
 
         <div class="bookcover__foot">
@@ -570,10 +585,10 @@ function initLanding() {
           -20
         ).toFixed(1)}px, 0)`;
       if (lamp) lamp.style.transform = `translate3d(${(cx - 320).toFixed(1)}px, ${(cy - 320).toFixed(1)}px, 0)`;
-      // 灯到词 260px 内线性点亮：15% 基础亮度 → 最高 70%
+      // 基础文字色由主题控制，指针只增强描边，避免小字恢复成低对比透明白。
       noteBoxes.forEach((note) => {
         const p = Math.max(0, 1 - Math.hypot(cx - note.x, cy - note.y) / 260);
-        note.el.style.color = `rgba(255,255,255,${(0.15 + p * 0.55).toFixed(3)})`;
+        note.el.style.setProperty('--note-glow', p.toFixed(3));
       });
       raf = Math.abs(tx - cx) + Math.abs(ty - cy) > 0.5 ? requestAnimationFrame(loop) : 0;
     };
@@ -594,6 +609,17 @@ function initLanding() {
   if (track) {
     const docsCount = state.flat.filter((entry) => !isSection(entry.doc)).length;
     track.style.animationDuration = `${Math.max(60, docsCount * 2.4)}s`;
+  }
+  const ticker = cover.querySelector('.bookcover__ticker');
+  const tickerToggle = cover.querySelector('[data-ticker-toggle]');
+  if (tickerToggle) {
+    tickerToggle.hidden = reduced;
+    tickerToggle.addEventListener('click', () => {
+      const paused = ticker.dataset.paused !== 'true';
+      ticker.dataset.paused = String(paused);
+      tickerToggle.setAttribute('aria-pressed', String(paused));
+      tickerToggle.textContent = paused ? '继续滚动' : '暂停滚动';
+    });
   }
 
   // 统计行数字滚动：与页脚淡入（820ms）衔接，1s 内滚到位
@@ -661,9 +687,7 @@ function viewIntro() {
 
   const partEntries = parts
     .map((part) => {
-      const total = countLeaves(part);
-      const read = countRead(part);
-      const pct = total ? Math.round((read / total) * 100) : 0;
+      const progress = readingProgress(part);
       return `
         <li>
           <a class="entry" href="${docHref(part)}">
@@ -671,11 +695,11 @@ function viewIntro() {
               <span class="entry__title">${escapeHtml(part.title)}</span>
             </span>
             <span class="entry__meta">
-              ${read ? `<span class="entry__read">已读 ${read}</span>` : ""}
-              <span class="entry__n">${total} 篇</span>
+              ${progress.label}
+              <span class="entry__n">${progress.total} 篇</span>
               <span class="entry__arrow" aria-hidden="true">→</span>
             </span>
-            ${read ? `<span class="entry__bar" style="width:${pct}%" aria-hidden="true"></span>` : ""}
+            ${progress.bar}
           </a>
         </li>`;
     })
@@ -684,7 +708,7 @@ function viewIntro() {
   const sceneEntries = sceneGroups
     .map((group) => {
       const firstLeaf = (group.children || []).find((child) => !isSection(child));
-      const read = countRead(group);
+      const progress = readingProgress(group);
       return `
         <li>
           <a class="entry" href="${docHref(group)}">
@@ -693,10 +717,11 @@ function viewIntro() {
               ${firstLeaf ? `<span class="entry__hint">${escapeHtml(firstLeaf.title)}</span>` : ""}
             </span>
             <span class="entry__meta">
-              ${read ? `<span class="entry__read">已读 ${read}</span>` : ""}
-              <span class="entry__n">${(group.children || []).length} 个任务</span>
+              ${progress.label}
+              <span class="entry__n">${progress.total} 个任务</span>
               <span class="entry__arrow" aria-hidden="true">→</span>
             </span>
+            ${progress.bar}
           </a>
         </li>`;
     })
@@ -2114,6 +2139,10 @@ function initKeyboard() {
       closeGroupBox();
       return;
     }
+
+    // 弹层、视频和可编辑控件应接收自己的方向键，不触发文章翻页。
+    if (document.body.classList.contains('is-locked') ||
+        document.activeElement?.closest('video, select, [contenteditable="true"], [role="slider"]')) return;
 
     if (state.route.name !== "doc") return;
     const index = state.flat.findIndex((item) => shortId(item.doc.nodeToken) === state.route.id);
