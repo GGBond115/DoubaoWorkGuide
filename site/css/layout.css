@@ -380,7 +380,7 @@ body.is-home .view {
   }
 }
 
-/* 注记有独立的深色底，亮蓝高光经过时仍能读清。 */
+/* 场景注记融入封面：透明底、柔和白字，不做按钮式色块。 */
 .bookcover__notes {
   position: absolute;
   inset: 0;
@@ -397,12 +397,8 @@ body.is-home .view {
   font-size: 12px;
   letter-spacing: 0.14em;
   white-space: nowrap;
-  color: #ffffff;
+  color: rgb(255 255 255 / calc(0.72 + var(--note-glow, 0) * 0.12));
   padding: 5px 9px;
-  border-radius: 6px;
-  border: 1px solid rgba(198, 238, 252, 0.24);
-  background: color-mix(in srgb, var(--brand-ink) 68%, transparent);
-  box-shadow: 0 0 0 1px rgb(198 238 252 / calc(var(--note-glow, 0) * 0.35));
   animation: bc-fade 600ms var(--ease-out) both;
   animation-delay: calc(950ms + var(--i) * 80ms);
 }
@@ -675,7 +671,6 @@ body.is-home .view {
   border-top: 1px solid color-mix(in srgb, var(--cover-cyan) 16%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--cover-cyan) 16%, transparent);
   animation: bc-fade 700ms var(--ease-out) 950ms backwards;
-  background: color-mix(in srgb, var(--brand-ink) 60%, transparent);
 }
 
 .bookcover__ticker-window {
@@ -711,7 +706,7 @@ body.is-home .view {
   white-space: nowrap;
   font-size: 12px;
   letter-spacing: 0.08em;
-  color: var(--cover-foreground);
+  color: rgba(255, 255, 255, 0.82);
 }
 
 /* 跑马灯里的每条篇目都是入口：hover 暂停轨道、当前条点亮 */

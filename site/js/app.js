@@ -5,7 +5,7 @@
    导航靠页眉右上的胶囊、目录页，以及每篇文末的下一节链接。
    ============================================================ */
 
-import { renderMarkdown, escapeHtml, plainText } from "./markdown.js?v=20260905-1";
+import { renderMarkdown, escapeHtml, plainText } from "./markdown.js?v=20260905-2";
 
 const READ_KEY = "dwg.read";
 const RESUME_KEY = "dwg.resume";
@@ -13,7 +13,7 @@ const RAIL_KEY = "dwg.rail"; /* 左侧章节目录："1" 固定展开，其余�
 const THEME_KEY = "dwg.theme";
 const THEME_ORDER = ["system", "light", "dark"];
 const ASSET_VERSION =
-  document.querySelector('meta[name="dwg-assets-version"]')?.content || "20260905-1";
+  document.querySelector('meta[name="dwg-assets-version"]')?.content || "20260905-2";
 const versionedAsset = (path) => `${path}?v=${encodeURIComponent(ASSET_VERSION)}`;
 
 const dom = {
@@ -585,7 +585,7 @@ function initLanding() {
           -20
         ).toFixed(1)}px, 0)`;
       if (lamp) lamp.style.transform = `translate3d(${(cx - 320).toFixed(1)}px, ${(cy - 320).toFixed(1)}px, 0)`;
-      // 基础文字色由主题控制，指针只增强描边，避免小字恢复成低对比透明白。
+      // 保持清晰的基础白字，指针仅轻微提亮，不恢复深色底或描边。
       noteBoxes.forEach((note) => {
         const p = Math.max(0, 1 - Math.hypot(cx - note.x, cy - note.y) / 260);
         note.el.style.setProperty('--note-glow', p.toFixed(3));
