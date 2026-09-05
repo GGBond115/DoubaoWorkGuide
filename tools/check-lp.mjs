@@ -54,6 +54,10 @@ const relativeLuminance = (rgb) => {
 
 assert.ok(relativeLuminance(cardLine) >= 0.2, `card line is still too dark (${cardLine})`);
 for (const [name, fill] of Object.entries(fills)) {
+  if (name === "cta" || name === "footer") {
+    assert.equal(fill.backgroundColor, "rgb(8, 99, 245)", `${name} 应与封面共用 Logo 深蓝底色`);
+    continue;
+  }
   const luminance = relativeLuminance(fill.backgroundColor);
   assert.ok(luminance >= 0.28, `${name} fill is still too dark (${luminance.toFixed(3)})`);
 }

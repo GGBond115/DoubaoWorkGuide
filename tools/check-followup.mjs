@@ -10,6 +10,9 @@ const ARTICLE = `${ORIGIN}/#/p/5828287b3f6d6835`;
 
 function parseColor(value) {
   const parts = value.match(/[\d.]+/g).map(Number);
+  if (value.startsWith("color(srgb")) {
+    return { r: parts[0] * 255, g: parts[1] * 255, b: parts[2] * 255, a: parts[3] ?? 1 };
+  }
   return { r: parts[0], g: parts[1], b: parts[2], a: parts[3] ?? 1 };
 }
 
@@ -146,8 +149,8 @@ try {
   assert.ok(homeFooter.communityHref, "AgentWork 社区入口必须有可访问链接");
   assert.notEqual(homeFooter.backgroundImage, "none", "首页页脚应继续使用首页品牌蓝渐变和网格色系");
   const linkColor = parseColor(homeFooter.communityColor);
-  const gradientEndpoints = homeFooter.backgroundImage.match(/rgb\([^)]+\)/g)?.slice(-2) || [];
-  assert.equal(gradientEndpoints.length, 2, "首页页脚应提供可验证的品牌蓝渐变端点");
+  const gradientEndpoints = homeFooter.backgroundImage.match(/(?:rgba?|color)\([^)]+\)/g)?.slice(-3) || [];
+  assert.equal(gradientEndpoints.length, 3, "首页页脚应提供可验证的三个品牌蓝渐变色标");
   for (const background of gradientEndpoints) {
     const backgroundColor = parseColor(background);
     assert.ok(

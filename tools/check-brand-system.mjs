@@ -103,11 +103,11 @@ try {
     "首页封面与通用组件应共用同一套 Logo 色阶"
   );
   assert.equal(light.lpLine, EXPECTED.mid, "首页制图纸描边应直接使用 Logo 中蓝");
-  assert.equal(light.ctaBackground, "rgb(66, 154, 252)", "首页主操作区应直接使用 Logo 中蓝");
+  assert.equal(light.ctaBackground, "rgb(8, 99, 245)", "底部主操作区应延续封面的 Logo 深蓝");
   assert.ok(contrast(light.ctaBackground, light.ctaText) >= 4.5, "日间 CTA 应达到 4.5:1 对比度");
   assert.doesNotMatch(light.footerBackground, /rgb\(26, 47, 247\)/, "页脚不得残留旧品牌蓝");
-  assert.match(light.footerBackground, /rgb\(121, 196, 252\)/, "页脚应明确使用 Logo 浅蓝");
-  assert.match(light.footerBackground, /rgb\(66, 154, 252\)/, "页脚应明确使用 Logo 中蓝");
+  assert.match(light.footerBackground, /linear-gradient\(118deg, color\(srgb/, "页脚亮端应由主蓝与深蓝混合派生");
+  assert.match(light.footerBackground, /rgb\(8, 99, 245\)/, "页脚应延续封面的 Logo 深蓝");
 
   await page.evaluate(() => {
     localStorage.setItem("dwg.theme", "dark");

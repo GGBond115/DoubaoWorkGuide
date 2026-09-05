@@ -397,7 +397,7 @@ body.is-home .view {
   font-size: 12px;
   letter-spacing: 0.14em;
   white-space: nowrap;
-  color: rgb(255 255 255 / calc(0.72 + var(--note-glow, 0) * 0.12));
+  color: rgb(255 255 255 / calc(0.32 + var(--note-glow, 0) * 0.08));
   padding: 5px 9px;
   animation: bc-fade 600ms var(--ease-out) both;
   animation-delay: calc(950ms + var(--i) * 80ms);
@@ -706,7 +706,7 @@ body.is-home .view {
   white-space: nowrap;
   font-size: 12px;
   letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(255, 255, 255, 0.46);
 }
 
 /* 跑马灯里的每条篇目都是入口：hover 暂停轨道、当前条点亮 */
@@ -1277,14 +1277,21 @@ body.is-home .view {
   border-bottom: 1px solid var(--lp-hatch);
 }
 
-/* 收尾 CTA：使用 Logo 高光面的浅蓝渐变，避免大面积电光深蓝。 */
+/* 收尾与封面共用主蓝/深蓝方向，白字和按钮维持清晰层级。 */
+.lp__cta,
+.lp__foot {
+  --lp-accent-ink: #ffffff;
+  --lp-closing-edge: color-mix(in srgb, var(--cover-blue) 30%, var(--cover-blue-deep));
+  --lp-closing-gradient: linear-gradient(118deg, var(--lp-closing-edge), var(--cover-blue-deep) 55%, var(--lp-closing-edge));
+}
+
 .lp__cta {
   margin: 0 calc(-1 * var(--pad-x));
   padding: 104px var(--pad-x);
-  background-color: var(--lp-accent-strong);
+  background-color: var(--cover-blue-deep);
   background-image: linear-gradient(color-mix(in srgb, var(--lp-accent-ink) 7%, transparent) 1px, transparent 1px),
     linear-gradient(90deg, color-mix(in srgb, var(--lp-accent-ink) 7%, transparent) 1px, transparent 1px),
-    linear-gradient(120deg, var(--lp-accent-soft), var(--lp-accent) 58%, var(--lp-accent-strong));
+    var(--lp-closing-gradient);
   background-size: 44px 44px, 44px 44px, auto;
   text-align: center;
   color: var(--lp-accent-ink);
@@ -1321,7 +1328,7 @@ body.is-home .view {
 
 .lp__cta .bcbtn--solid {
   background: color-mix(in srgb, #ffffff 88%, var(--lp-accent-soft));
-  color: var(--lp-accent-ink);
+  color: var(--doubao-deep);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lp-accent-ink) 16%, transparent);
 }
 
@@ -1335,7 +1342,7 @@ body.is-home .view {
   background: color-mix(in srgb, #ffffff 18%, transparent);
 }
 
-/* 页脚延续 Logo 的浅蓝到中蓝色带，使用深蓝灰文字保证可读性。 */
+/* 页脚延续上方 CTA 的品牌蓝，不再切换为另一条浅蓝色带。 */
 .lp__foot {
   display: flex;
   flex-wrap: wrap;
@@ -1345,12 +1352,11 @@ body.is-home .view {
   margin: 0 calc(-1 * var(--pad-x));
   padding: 26px var(--pad-x);
   border-top: 1px solid color-mix(in srgb, var(--lp-accent-ink) 18%, transparent);
-  background-color: var(--lp-accent);
+  background-color: var(--cover-blue-deep);
   background-image: linear-gradient(color-mix(in srgb, var(--lp-accent-ink) 7%, transparent) 1px, transparent 1px),
     linear-gradient(90deg, color-mix(in srgb, var(--lp-accent-ink) 7%, transparent) 1px, transparent 1px),
-    radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--lp-accent-soft) 76%, transparent), transparent 42%),
-    linear-gradient(128deg, var(--lp-accent), var(--lp-accent-strong));
-  background-size: 36px 36px, 36px 36px, auto, auto;
+    var(--lp-closing-gradient);
+  background-size: 44px 44px, 44px 44px, auto;
   color: color-mix(in srgb, var(--lp-accent-ink) 74%, transparent);
 }
 
@@ -1375,7 +1381,7 @@ body.is-home .view {
 }
 
 .lp__foot-links a:hover {
-  color: var(--doubao-deep);
+  color: var(--doubao-highlight);
 }
 
 .lp__foot-git svg {
@@ -1416,7 +1422,7 @@ body.is-home .view {
 }
 
 .lp__foot-friends a:hover {
-  color: var(--doubao-deep);
+  color: var(--doubao-highlight);
 }
 
 /* 夜间的大色块与正文一起降亮，品牌蓝留给边线和主操作。 */

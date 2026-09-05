@@ -5,7 +5,7 @@
    导航靠页眉右上的胶囊、目录页，以及每篇文末的下一节链接。
    ============================================================ */
 
-import { renderMarkdown, escapeHtml, plainText } from "./markdown.js?v=20260905-2";
+import { renderMarkdown, escapeHtml, plainText } from "./markdown.js?v=20260905-3";
 
 const READ_KEY = "dwg.read";
 const RESUME_KEY = "dwg.resume";
@@ -13,7 +13,7 @@ const RAIL_KEY = "dwg.rail"; /* 左侧章节目录："1" 固定展开，其余�
 const THEME_KEY = "dwg.theme";
 const THEME_ORDER = ["system", "light", "dark"];
 const ASSET_VERSION =
-  document.querySelector('meta[name="dwg-assets-version"]')?.content || "20260905-2";
+  document.querySelector('meta[name="dwg-assets-version"]')?.content || "20260905-3";
 const versionedAsset = (path) => `${path}?v=${encodeURIComponent(ASSET_VERSION)}`;
 
 const dom = {
@@ -343,15 +343,13 @@ function navigate(hash, viaKeyboard = false) {
 /* 书封网格上的场景词注记：都是书里真实任务的影子，位置避开中央标题区。
    [文字, left%, top%] */
 const COVER_NOTES = [
-  ["塞满的收件箱", 10, 24],
-  ["今天写什么", 27, 13],
-  ["一张产品原图", 8, 62],
-  ["随手收藏的以后", 20, 80],
-  ["五分钟跑通第一个任务", 46, 16],
-  ["开盘前的研究清单", 74, 11],
-  ["出门也能盯任务", 85, 28],
-  ["定时任务准点交", 82, 60],
-  ["一支多 Agent 小队", 68, 82],
+  ["邮件待办", 10, 24],
+  ["今日选题", 27, 13],
+  ["产品主图", 8, 62],
+  ["知识归档", 20, 80],
+  ["投研清单", 74, 11],
+  ["远程接续", 85, 28],
+  ["定时简报", 82, 60],
 ];
 
 function viewLanding() {
