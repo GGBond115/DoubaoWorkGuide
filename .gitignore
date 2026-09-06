@@ -25,6 +25,7 @@ pnpm-debug.log*
 *.log
 
 # Internal content-maintenance workspace
+/docs/
 /content/
 /scripts/
 /.work/
