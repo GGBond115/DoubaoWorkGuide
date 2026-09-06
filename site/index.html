@@ -8,9 +8,9 @@
       name="description"
       content="一本面向豆包工作的系统化中文实践蓝皮书：从下载安装到完成第一个可验收任务，并覆盖连接器、Skill、API、定时任务与多 Agent 工作小队，附真实场景任务。"
     />
-    <meta name="color-scheme" content="light" />
+    <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#ffffff" />
-    <meta name="dwg-assets-version" content="20260904-1" />
+    <meta name="dwg-assets-version" content="20260906-1" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="豆包工作蓝皮书" />
     <meta
@@ -26,14 +26,33 @@
     <link rel="apple-touch-icon" href="assets/brand/doubao-mark-180.png" />
     <link rel="preload" href="fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="fonts/inter-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <script>
+      (() => {
+        let preference = "system";
+        try {
+          const saved = localStorage.getItem("dwg.theme");
+          if (["system", "light", "dark"].includes(saved)) preference = saved;
+        } catch (error) {}
+        const effective =
+          preference === "system"
+            ? matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light"
+            : preference;
+        document.documentElement.dataset.theme = preference;
+        document.documentElement.dataset.themeEffective = effective;
+        document.querySelector('meta[name="theme-color"]').content =
+          effective === "dark" ? "#06152f" : "#ffffff";
+      })();
+    </script>
     <style>
       body.is-booting {
         visibility: hidden;
       }
     </style>
-    <link rel="stylesheet" href="css/base.css?v=20260904-1" />
-    <link rel="stylesheet" href="css/layout.css?v=20260904-1" />
-    <link rel="stylesheet" href="css/article.css?v=20260904-1" />
+    <link rel="stylesheet" href="css/base.css?v=20260906-1" />
+    <link rel="stylesheet" href="css/layout.css?v=20260906-1" />
+    <link rel="stylesheet" href="css/article.css?v=20260906-1" />
   </head>
   <body class="is-home is-booting">
     <a class="skip-link" href="#content">跳到正文</a>
@@ -54,6 +73,10 @@
         </a>
       </div>
       <div class="masthead__chips">
+        <button class="chip theme-toggle" type="button" data-theme-toggle>
+          <span class="theme-toggle__icon" aria-hidden="true">◐</span>
+          <span class="theme-toggle__label">自动</span>
+        </button>
         <button class="chip" id="btn-search" type="button" aria-label="全文搜索">
           <span>搜索</span>
           <span class="chip__quiet chip__kbd" aria-hidden="true">⌘K</span>
@@ -82,6 +105,10 @@
           <span class="wordmark__name">豆包工作蓝皮书</span>
         </a>
         <span class="pinbar__chips">
+          <button class="chip theme-toggle" type="button" data-theme-toggle>
+            <span class="theme-toggle__icon" aria-hidden="true">◐</span>
+            <span class="theme-toggle__label">自动</span>
+          </button>
           <button class="chip" type="button" data-search>搜索</button>
           <a class="chip" href="#/toc">目录</a>
           <button class="chip" type="button" data-group>交流群</button>
@@ -99,17 +126,20 @@
             placeholder="搜标题、正文、提示词…"
             autocomplete="off"
             spellcheck="false"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-controls="search-results"
+            aria-expanded="false"
           />
           <kbd>Esc</kbd>
         </div>
-        <ol class="search__results" id="search-results"></ol>
-        <p class="search__hint" id="search-hint">↑↓ 选择 · 回车打开 · 共 49 篇可检索</p>
+        <ol class="search__results" id="search-results" role="listbox"></ol>
+        <p class="search__hint" id="search-hint" aria-live="polite">↑↓ 选择 · 回车打开 · 共 49 篇可检索</p>
       </div>
     </div>
 
     <main id="content"><div id="app" hidden></div></main>
 
-    <script src="js/vendor/qrcode.js?v=20260904-1"></script>
-    <script type="module" src="js/app.js?v=20260904-1"></script>
+    <script type="module" src="js/app.js?v=20260906-1"></script>
   </body>
 </html>

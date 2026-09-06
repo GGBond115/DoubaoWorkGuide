@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="./assets/readme-home.png" alt="豆包工作指南网站首页" width="100%">
+  <img src="./assets/readme-home.png" alt="豆包工作蓝皮书网站首页" width="100%">
 </p>
 
-<h1 align="center">豆包工作指南</h1>
+<h1 align="center">豆包工作蓝皮书</h1>
 
 <p align="center"><strong>从零到一掌握豆包工作，把真实任务整理成可复用的工作方法</strong></p>
 
@@ -16,15 +16,15 @@
 
 ## 项目简介
 
-DoubaoWork Guide 是一份面向豆包工作的系统化中文实践指南。项目为新用户提供从下载安装到完成首个可验收任务的完整上手路径，并继续覆盖连接器、Skill、API、定时任务、多 Agent 工作小队等核心能力。
+豆包工作蓝皮书（DoubaoWork Guide）是一份面向豆包工作的系统化中文实践资料。项目为新用户提供从下载安装到完成首个可验收任务的完整上手路径，并继续覆盖连接器、Skill、API、定时任务、多 Agent 工作小队等核心能力。
 
 基础能力之外，指南从个人提效、自媒体、知识管理、电商和金融研究五类工作场景出发，通过 31 个真实任务展示如何把材料、要求和工具组织为可检查、可交付、可复用的工作成果。
 
-当前项目收录 49 篇指南与案例，并提供全文搜索、章节导航、场景任务速达、图片与视频展示、明暗主题切换及移动端适配。内容与网站展示层相互独立，后续扩充章节时可以保持稳定的阅读架构。
+当前项目收录 49 篇指南与案例，并提供全文搜索、章节导航、场景任务速达、图片与视频展示、阅读进度记录、日间/暗色主题及移动端适配。内容与网站展示层相互独立，后续扩充章节时可以保持稳定的阅读架构。
 
 ## 在线阅读
 
-推荐访问 [doubaowork.homes](https://doubaowork.homes/) 阅读完整内容。在线版提供完整章节目录、全文搜索、场景任务速达、图片与视频展示、明暗主题切换和移动端适配。
+推荐访问 [doubaowork.homes](https://doubaowork.homes/) 阅读完整内容。在线版提供完整章节目录、全文搜索、场景任务速达、图片与视频展示、阅读进度记录、跟随系统的日间/暗色主题和移动端适配。
 
 GitHub 适合查看项目结构和参与完善，连续阅读请使用在线版。
 
@@ -60,7 +60,9 @@ GitHub 适合查看项目结构和参与完善，连续阅读请使用在线版�
 - 全文搜索与场景任务快速访问
 - 图片画廊、组合排版和本地视频播放
 - 桌面端与移动端响应式布局
-- 明暗主题切换与本地偏好保存
+- 跟随系统、固定日间和固定暗色三种主题状态
+- 阅读进度、继续阅读位置与目录展开偏好保存
+- 分享卡片、图片放大和提示词一键复制
 - 内容数据、媒体资源与界面逻辑分层维护
 
 ## 本地运行
@@ -83,11 +85,15 @@ http://127.0.0.1:4173/
 
 公开内容由结构化数据和本地媒体资源驱动。
 
-- `site/content/site-content.json` 保存章节结构与正文
+- `site/content/site-content.json` 保存章节结构与完整正文
+- `site/content/site-index.json` 是由完整正文生成的轻量首屏索引
 - `site/media/` 保存公开页面引用的图片和视频
-- `site/app.js` 负责路由、搜索、正文渲染和页面交互
-- `site/styles.css` 负责视觉系统、响应式布局与明暗主题
+- `site/js/app.js` 负责路由、搜索、按需加载和页面交互
+- `site/js/markdown.js` 负责 Markdown 安全渲染
+- `site/css/` 保存视觉系统、正文样式和响应式布局
 - `site/index.html` 提供站点入口和全局导航
+
+修改 `site/content/site-content.json` 后，运行 `npm run build:index` 重新生成轻量索引，并将两者一起提交。
 
 内容更新应保留现有节点关系与公开媒体路径。界面调整应优先在展示层完成，避免把章节内容直接写入页面模板。
 
@@ -100,15 +106,37 @@ doubaowork-guide/
 │   └── readme-home.png          # README 首页预览
 ├── site/
 │   ├── assets/                  # 网站界面素材
-│   ├── content/                 # 公开内容数据
+│   ├── content/
+│   │   ├── site-content.json    # 完整公开内容
+│   │   └── site-index.json      # 生成式轻量首屏索引
+│   ├── css/                     # 基础、布局与正文样式
+│   ├── js/                      # 路由、交互与 Markdown 渲染
 │   ├── media/                   # 公开图片与视频
-│   ├── app.js                   # 路由、渲染、搜索与交互
-│   ├── styles.css               # 视觉与响应式样式
+│   ├── _headers                 # Cloudflare Pages 缓存策略
 │   └── index.html               # 网站入口
+├── tools/                       # 索引生成、浏览器回归与截图脚本
+├── package.json                 # 本地测试入口
 ├── .gitignore
 ├── LICENSE
 └── README.md
 ```
+
+## 本地验收
+
+首次运行浏览器自动化前安装开发依赖：
+
+```bash
+npm install
+```
+
+保持本地服务器运行，再在另一个终端执行：
+
+```bash
+npm test
+npm run audit
+```
+
+`npm test` 覆盖启动、首页跳转、继续阅读、搜索、移动端、交流群、主题切换与首页配色；`npm run audit` 进一步检查全部内容路由、媒体文件、控制台错误、横向溢出、正文图框、按需加载和模拟弱网首屏时间。
 
 ## 发布方式
 
@@ -123,7 +151,7 @@ doubaowork-guide/
 
 ## 作者们
 
-感谢以下作者共同参与《豆包工作指南》的创作与维护。点击名片可查看原图并扫描二维码。
+感谢以下作者共同参与《豆包工作蓝皮书》的创作与维护。点击名片可查看原图并扫描二维码。
 
 <p align="center">
   <a href="./assets/authors/jia-mu-wei-lai-pai.png"><img src="./assets/authors/jia-mu-wei-lai-pai.png" alt="甲木未来派" width="48%"></a>

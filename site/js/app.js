@@ -5,13 +5,15 @@
    导航靠页眉右上的胶囊、目录页，以及每篇文末的下一节链接。
    ============================================================ */
 
-import { renderMarkdown, escapeHtml, plainText } from "./markdown.js?v=20260904-1";
+import { renderMarkdown, escapeHtml, plainText } from "./markdown.js?v=20260906-1";
 
 const READ_KEY = "dwg.read";
 const RESUME_KEY = "dwg.resume";
 const RAIL_KEY = "dwg.rail"; /* 左侧章节目录："1" 固定展开，其余（含首次）收起悬浮 */
+const THEME_KEY = "dwg.theme";
+const THEME_ORDER = ["system", "light", "dark"];
 const ASSET_VERSION =
-  document.querySelector('meta[name="dwg-assets-version"]')?.content || "20260904-1";
+  document.querySelector('meta[name="dwg-assets-version"]')?.content || "20260906-1";
 const versionedAsset = (path) => `${path}?v=${encodeURIComponent(ASSET_VERSION)}`;
 
 const dom = {
@@ -34,7 +36,67 @@ const state = {
   index: [], // 全文搜索索引
   keyboardNav: false,
   cleanup: [],
+  fullContentReady: false,
+  fullContentPromise: null,
+  routeRevision: 0,
 };
+
+/* ------------------------------------------------------------
+   主题：默认跟随系统，可固定为日间或暗色；首屏状态由 head 内联脚本提前设置
+   ------------------------------------------------------------ */
+
+const themeMedia = matchMedia("(prefers-color-scheme: dark)");
+
+function effectiveTheme(preference) {
+  return preference === "system" ? (themeMedia.matches ? "dark" : "light") : preference;
+}
+
+function syncThemeControls() {
+  const preference = document.documentElement.dataset.theme || "system";
+  const config = {
+    system: { icon: "◐", text: "自动", label: "主题：跟随系统；点击切换为日间模式" },
+    light: { icon: "☀", text: "日间", label: "主题：日间模式；点击切换为暗色模式" },
+    dark: { icon: "☾", text: "暗色", label: "主题：暗色模式；点击切换为跟随系统" },
+  }[preference];
+  document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+    button.querySelector(".theme-toggle__icon")?.replaceChildren(config.icon);
+    button.querySelector(".theme-toggle__label")?.replaceChildren(config.text);
+    button.setAttribute("aria-label", config.label);
+    button.setAttribute("title", config.label);
+  });
+}
+
+function applyThemePreference(preference, { persist = true } = {}) {
+  const safePreference = THEME_ORDER.includes(preference) ? preference : "system";
+  const effective = effectiveTheme(safePreference);
+  const root = document.documentElement;
+  root.dataset.theme = safePreference;
+  root.dataset.themeEffective = effective;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute(
+    "content",
+    effective === "dark" ? "#06152f" : "#ffffff"
+  );
+  if (persist) {
+    try {
+      localStorage.setItem(THEME_KEY, safePreference);
+    } catch (error) {}
+  }
+  syncThemeControls();
+}
+
+function initTheme() {
+  applyThemePreference(document.documentElement.dataset.theme || "system", { persist: false });
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest("[data-theme-toggle]")) return;
+    const current = document.documentElement.dataset.theme || "system";
+    applyThemePreference(THEME_ORDER[(THEME_ORDER.indexOf(current) + 1) % THEME_ORDER.length]);
+  });
+  themeMedia.addEventListener?.("change", () => {
+    if (document.documentElement.dataset.theme === "system") {
+      applyThemePreference("system", { persist: false });
+    }
+  });
+}
 
 /* ------------------------------------------------------------
    已读记录
@@ -90,10 +152,14 @@ function resumeLine() {
 const shortId = (token) => String(token || "").replace(/^doc-/, "");
 const isSection = (doc) => Boolean(doc.hasChild);
 const docHref = (doc) => `#/p/${shortId(doc.nodeToken)}`;
+const imageCount = (doc) => doc.imageCount ?? doc.images?.length ?? 0;
+const videoCount = (doc) => doc.videoCount ?? doc.videos?.length ?? 0;
+const charCount = (doc) => doc.charCount ?? doc.content?.length ?? 0;
 
-function buildModel(payload) {
+function buildModel(payload, { full = false } = {}) {
   const docs = (payload.documents || []).slice();
   state.docs = docs;
+  if (full) state.fullContentReady = true;
 
   const childrenOf = (token) =>
     docs.filter((doc) => doc.parentToken === token).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -118,16 +184,13 @@ function buildModel(payload) {
   state.parts.forEach((part) => walk(part, part, null));
   state.flat = flat;
 
-  state.leafOrder = new Map();
-  flat
-    .filter((entry) => !entry.doc.hasChild)
-    .forEach((entry, i) => state.leafOrder.set(entry.doc.nodeToken, i + 1));
+  const leafCount = flat.filter((entry) => !entry.doc.hasChild).length;
 
   state.counts = {
-    docs: state.leafOrder.size,
-    images: docs.reduce((sum, doc) => sum + (doc.images?.length || 0), 0),
-    videos: docs.reduce((sum, doc) => sum + (doc.videos?.length || 0), 0),
-    chars: docs.reduce((sum, doc) => sum + (doc.content?.length || 0), 0),
+    docs: leafCount,
+    images: docs.reduce((sum, doc) => sum + imageCount(doc), 0),
+    videos: docs.reduce((sum, doc) => sum + videoCount(doc), 0),
+    chars: docs.reduce((sum, doc) => sum + charCount(doc), 0),
   };
 
   buildSearchIndex();
@@ -141,7 +204,7 @@ function buildSearchIndex() {
   state.index = state.flat.map(({ doc, part }) => {
     // 去掉块级 Markdown 语法后再走行内清理，得到可检索、可做摘要的纯文本
     const text = plainText(
-      (doc.content || "")
+      (doc.content || doc.excerpt || "")
         .replace(/^#{1,6}\s*/gm, "")
         .replace(/^>\s?/gm, "")
         .replace(/^[-*]\s+/gm, "")
@@ -230,10 +293,22 @@ function countRead(node) {
   return total;
 }
 
+function readingProgress(node) {
+  const total = countLeaves(node);
+  const read = countRead(node);
+  const pct = total ? read / total * 100 : 0;
+  const label = total && read === total ? "已全部读过" : read ? `已读 ${read} / ${total}` : "尚未开始";
+  return {
+    total,
+    label: `<span class="entry__read">${label}</span>`,
+    bar: `<span class="entry__progress" role="progressbar" aria-label="${escapeHtml(node.title)}阅读进度" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${read}" aria-valuetext="${read} / ${total} 篇已读"><span class="entry__bar" style="width:${pct}%"></span></span>`,
+  };
+}
+
 function docMeta(doc) {
   const bits = [];
-  if (doc.images?.length) bits.push(`${doc.images.length} 图`);
-  if (doc.videos?.length) bits.push(`${doc.videos.length} 视频`);
+  if (imageCount(doc)) bits.push(`${imageCount(doc)} 图`);
+  if (videoCount(doc)) bits.push(`${videoCount(doc)} 视频`);
   return bits.join(" · ");
 }
 
@@ -268,15 +343,13 @@ function navigate(hash, viaKeyboard = false) {
 /* 书封网格上的场景词注记：都是书里真实任务的影子，位置避开中央标题区。
    [文字, left%, top%] */
 const COVER_NOTES = [
-  ["塞满的收件箱", 10, 24],
-  ["今天写什么", 27, 13],
-  ["一张产品原图", 8, 62],
-  ["随手收藏的以后", 20, 80],
-  ["五分钟跑通第一个任务", 46, 16],
-  ["开盘前的研究清单", 74, 11],
-  ["出门也能盯任务", 85, 28],
-  ["定时任务准点交", 82, 60],
-  ["一支多 Agent 小队", 68, 82],
+  ["邮件待办", 10, 24],
+  ["今日选题", 27, 13],
+  ["产品主图", 8, 62],
+  ["知识归档", 20, 80],
+  ["投研清单", 74, 11],
+  ["远程接续", 85, 28],
+  ["定时简报", 82, 60],
 ];
 
 function viewLanding() {
@@ -304,8 +377,8 @@ function viewLanding() {
 
   const taskCards = picks
     .map(({ group, doc }, i) => {
-      const excerpt = plainText((doc.content || "").replace(/^#.*$/m, "")).slice(0, 72);
-      const minutes = Math.max(1, Math.round((doc.content || "").length / 380));
+      const excerpt = (doc.excerpt || plainText((doc.content || "").replace(/^#.*$/m, ""))).slice(0, 72);
+      const minutes = Math.max(1, Math.round(charCount(doc) / 380));
       return `
         <a class="lp__card lp__task" href="${docHref(doc)}">
           <span class="lp__tape" aria-hidden="true"></span>
@@ -346,7 +419,7 @@ function viewLanding() {
         <div class="bookcover__lamp" aria-hidden="true"></div>
         <div class="bookcover__notes" aria-hidden="true">${COVER_NOTES.map(
           ([text, x, y], i) =>
-            `<span class="bc-note" style="left:${x}%;top:${y}%;--i:${i}">${escapeHtml(text)}</span>`
+            `<span class="bc-note" style="left:${x}%;--note-y:${y}%;--i:${i}">${escapeHtml(text)}</span>`
         ).join("")}</div>
         <div class="bookcover__spine" aria-hidden="true"><span>豆包工作蓝皮书 · 第一版 · 2026</span></div>
         <span class="bookcover__reg bookcover__reg--tl" aria-hidden="true"></span>
@@ -356,6 +429,10 @@ function viewLanding() {
         <div class="bookcover__bar">
           <span class="bookcover__brand">DOUBAO WORK<span class="bookcover__brand-ext"> · FIELD MANUAL</span></span>
           <span class="bookcover__nav">
+            <button class="chip chip--ghost theme-toggle" type="button" data-theme-toggle>
+              <span class="theme-toggle__icon" aria-hidden="true">◐</span>
+              <span class="theme-toggle__label">自动</span>
+            </button>
             <button class="chip chip--ghost" type="button" data-search>搜索</button>
             <a class="chip chip--ghost" href="#/toc">目录</a>
             <button class="chip chip--ghost" type="button" data-group>交流群</button>
@@ -380,7 +457,10 @@ function viewLanding() {
         </div>
 
         <div class="bookcover__ticker" aria-label="全部篇目速览">
-          <div class="bookcover__ticker-track"><span>${tickerText}　◦　</span><span aria-hidden="true">${tickerText}　◦　</span></div>
+          <div class="bookcover__ticker-window">
+            <div class="bookcover__ticker-track"><span>${tickerText}　◦　</span><span aria-hidden="true">${tickerText.replaceAll('<a ', '<a tabindex="-1" ')}　◦　</span></div>
+          </div>
+          <button type="button" class="bookcover__ticker-toggle" data-ticker-toggle aria-pressed="false">暂停滚动</button>
         </div>
 
         <div class="bookcover__foot">
@@ -442,7 +522,7 @@ function viewLanding() {
           <nav class="lp__foot-links" aria-label="站外链接">
             <a href="${FOOT_LINKS.contact}" target="_blank" rel="noopener noreferrer">联系我们</a>
             <a class="lp__foot-git" href="${FOOT_LINKS.repo}" target="_blank" rel="noopener noreferrer" aria-label="GitHub 仓库">${GITHUB_ICON}</a>
-            <a href="${FOOT_LINKS.community}" target="_blank" rel="noopener noreferrer">加入 Agentwork 社区</a>
+            <a href="${FOOT_LINKS.community}" target="_blank" rel="noopener noreferrer">加入 AgentWork 社区</a>
           </nav>
           <p class="lp__foot-copy">© 豆包工作蓝皮书</p>
           <nav class="lp__foot-friends" aria-label="友情链接">
@@ -503,10 +583,10 @@ function initLanding() {
           -20
         ).toFixed(1)}px, 0)`;
       if (lamp) lamp.style.transform = `translate3d(${(cx - 320).toFixed(1)}px, ${(cy - 320).toFixed(1)}px, 0)`;
-      // 灯到词 260px 内线性点亮：15% 基础亮度 → 最高 70%
+      // 保持清晰的基础白字，指针仅轻微提亮，不恢复深色底或描边。
       noteBoxes.forEach((note) => {
         const p = Math.max(0, 1 - Math.hypot(cx - note.x, cy - note.y) / 260);
-        note.el.style.color = `rgba(255,255,255,${(0.15 + p * 0.55).toFixed(3)})`;
+        note.el.style.setProperty('--note-glow', p.toFixed(3));
       });
       raf = Math.abs(tx - cx) + Math.abs(ty - cy) > 0.5 ? requestAnimationFrame(loop) : 0;
     };
@@ -527,6 +607,17 @@ function initLanding() {
   if (track) {
     const docsCount = state.flat.filter((entry) => !isSection(entry.doc)).length;
     track.style.animationDuration = `${Math.max(60, docsCount * 2.4)}s`;
+  }
+  const ticker = cover.querySelector('.bookcover__ticker');
+  const tickerToggle = cover.querySelector('[data-ticker-toggle]');
+  if (tickerToggle) {
+    tickerToggle.hidden = reduced;
+    tickerToggle.addEventListener('click', () => {
+      const paused = ticker.dataset.paused !== 'true';
+      ticker.dataset.paused = String(paused);
+      tickerToggle.setAttribute('aria-pressed', String(paused));
+      tickerToggle.textContent = paused ? '继续滚动' : '暂停滚动';
+    });
   }
 
   // 统计行数字滚动：与页脚淡入（820ms）衔接，1s 内滚到位
@@ -594,9 +685,7 @@ function viewIntro() {
 
   const partEntries = parts
     .map((part) => {
-      const total = countLeaves(part);
-      const read = countRead(part);
-      const pct = total ? Math.round((read / total) * 100) : 0;
+      const progress = readingProgress(part);
       return `
         <li>
           <a class="entry" href="${docHref(part)}">
@@ -604,11 +693,11 @@ function viewIntro() {
               <span class="entry__title">${escapeHtml(part.title)}</span>
             </span>
             <span class="entry__meta">
-              ${read ? `<span class="entry__read">已读 ${read}</span>` : ""}
-              <span class="entry__n">${total} 篇</span>
+              ${progress.label}
+              <span class="entry__n">${progress.total} 篇</span>
               <span class="entry__arrow" aria-hidden="true">→</span>
             </span>
-            ${read ? `<span class="entry__bar" style="width:${pct}%" aria-hidden="true"></span>` : ""}
+            ${progress.bar}
           </a>
         </li>`;
     })
@@ -617,7 +706,7 @@ function viewIntro() {
   const sceneEntries = sceneGroups
     .map((group) => {
       const firstLeaf = (group.children || []).find((child) => !isSection(child));
-      const read = countRead(group);
+      const progress = readingProgress(group);
       return `
         <li>
           <a class="entry" href="${docHref(group)}">
@@ -626,10 +715,11 @@ function viewIntro() {
               ${firstLeaf ? `<span class="entry__hint">${escapeHtml(firstLeaf.title)}</span>` : ""}
             </span>
             <span class="entry__meta">
-              ${read ? `<span class="entry__read">已读 ${read}</span>` : ""}
-              <span class="entry__n">${(group.children || []).length} 个任务</span>
+              ${progress.label}
+              <span class="entry__n">${progress.total} 个任务</span>
               <span class="entry__arrow" aria-hidden="true">→</span>
             </span>
+            ${progress.bar}
           </a>
         </li>`;
     })
@@ -899,9 +989,9 @@ function viewDoc(entry) {
   const meta = [
     isSection(doc)
       ? `${(doc.children || []).length} 个子章节`
-      : `第 ${state.leafOrder.get(doc.nodeToken)} / ${state.counts.docs} 篇`,
-    doc.images?.length ? `${doc.images.length} 张截图` : "",
-    doc.videos?.length ? `${doc.videos.length} 段视频` : "",
+      : "",
+    imageCount(doc) ? `${imageCount(doc)} 张截图` : "",
+    videoCount(doc) ? `${videoCount(doc)} 段视频` : "",
     !isSection(doc) && doc.content
       ? `约 ${Math.max(1, Math.round(doc.content.length / 380))} 分钟`
       : "",
@@ -917,7 +1007,12 @@ function viewDoc(entry) {
         <p class="article__where">${where}</p>
         <h1 class="display article__title">${escapeHtml(doc.title)}</h1>
         <p class="article__meta">${escapeHtml(meta)}</p>
-        ${body}
+        <div class="article__body-frame${isSection(doc) ? " article__body-frame--overview" : ""}">
+          <span class="article__body-label" aria-hidden="true">${
+            isSection(doc) ? "CHAPTER INDEX · 章节索引" : "FIELD NOTES · 实践正文"
+          }</span>
+          ${body}
+        </div>
         <nav class="article__next" aria-label="继续阅读">
           ${
             next
@@ -928,17 +1023,19 @@ function viewDoc(entry) {
               : `<p class="article__next-label">已经是最后一节</p>
                  <a class="nextlink" href="#/toc">回到目录</a>`
           }
-          <p class="article__tail">
+          <div class="article__tail">
             ${
               prev
-                ? `<a class="link" href="${docHref(prev.doc)}">上一节：${escapeHtml(
-                    prev.doc.title
-                  )}</a>`
+                ? `<p class="article__previous"><a class="link" href="${docHref(
+                    prev.doc
+                  )}">上一节：${escapeHtml(prev.doc.title)}</a></p>`
                 : ""
             }
-            <a class="link" href="#/toc">目录</a>
-            <button class="link" type="button" data-share>分享本篇</button>
-          </p>
+            <p class="article__tail-actions">
+              <a class="link" href="#/toc">目录</a>
+              <button class="link" type="button" data-share>分享本篇</button>
+            </p>
+          </div>
         </nav>
       </article>
       ${footer(true)}
@@ -953,7 +1050,7 @@ function viewDoc(entry) {
 const FOOT_LINKS = {
   repo: "https://github.com/AlephAITech/DoubaoWorkGuide",
   contact: "https://github.com/AlephAITech/DoubaoWorkGuide/issues",
-  community: "https://github.com/AlephAITech", // TODO: 换成 Agentwork 社区的真实入口
+  community: "https://github.com/AlephAITech",
 };
 
 /* 页脚友链 */
@@ -980,7 +1077,7 @@ function footer(tight = false) {
         <nav class="foot__links" aria-label="站外链接">
           <a href="${FOOT_LINKS.contact}" target="_blank" rel="noopener noreferrer">联系我们</a>
           <a class="foot__git" href="${FOOT_LINKS.repo}" target="_blank" rel="noopener noreferrer" aria-label="GitHub 仓库">${GITHUB_ICON}</a>
-          <a href="${FOOT_LINKS.community}" target="_blank" rel="noopener noreferrer">加入 Agentwork 社区</a>
+          <a href="${FOOT_LINKS.community}" target="_blank" rel="noopener noreferrer">加入 AgentWork 社区</a>
         </nav>
         <p class="foot__copy">© 豆包工作蓝皮书</p>
       </div>
@@ -1015,6 +1112,58 @@ function showLoadError(error) {
     <code class="state__code">python3 -m http.server 4173 --bind 127.0.0.1 --directory site</code>
     <p class="state__text">${escapeHtml(error?.message || error || "")}</p>
     </div>`;
+}
+
+function showRouteLoading() {
+  document.body.classList.remove("is-home");
+  dom.app.innerHTML = `
+    <div class="view">
+      <div class="state" role="status" aria-live="polite">
+        <p class="state__eyebrow">正在展开正文</p>
+        <h1 class="display">马上就好</h1>
+        <p class="state__text">正在载入这一篇的正文与媒体清单。</p>
+      </div>
+    </div>`;
+  window.scrollTo({ top: 0, behavior: "auto" });
+}
+
+async function fetchPayload(file) {
+  const response = await fetch(versionedAsset(`content/${file}`), { cache: "force-cache" });
+  if (!response.ok) throw new Error(`${file}: HTTP ${response.status}`);
+  return response.json();
+}
+
+function ensureFullContent() {
+  if (state.fullContentReady) return Promise.resolve();
+  if (!state.fullContentPromise) {
+    state.fullContentPromise = fetchPayload("site-content.json")
+      .then((payload) => buildModel(payload, { full: true }))
+      .catch((error) => {
+        state.fullContentPromise = null;
+        throw error;
+      });
+  }
+  return state.fullContentPromise;
+}
+
+function scheduleFullContent() {
+  const load = () => ensureFullContent().catch(() => {});
+  if ("requestIdleCallback" in window) window.requestIdleCallback(load, { timeout: 1200 });
+  else setTimeout(load, 0);
+}
+
+async function handleRouteChange() {
+  const revision = ++state.routeRevision;
+  if (parseHash().name === "doc" && !state.fullContentReady) {
+    showRouteLoading();
+    try {
+      await ensureFullContent();
+    } catch (error) {
+      if (revision === state.routeRevision) showLoadError(error);
+      return;
+    }
+  }
+  if (revision === state.routeRevision) render();
 }
 
 /* ------------------------------------------------------------
@@ -1082,6 +1231,7 @@ function render() {
     if (!isSection(doc)) trackResume(doc);
   }
   bindPage();
+  syncThemeControls();
   dom.app.querySelectorAll(".display").forEach(phraseWrap);
   if (route.name === "intro") initReveal();
   if (route.name === "home") initLanding();
@@ -1158,6 +1308,8 @@ function bindPage() {
 let sharebox = null;
 let shareCard = { url: "", name: "" };
 let logoPromise = null;
+let qrLibraryPromise = null;
+let shareGeneration = 0;
 
 function loadLogo() {
   if (!logoPromise) {
@@ -1169,6 +1321,32 @@ function loadLogo() {
     });
   }
   return logoPromise;
+}
+
+function loadQRLibrary() {
+  if (typeof qrcode === "function") return Promise.resolve();
+  if (!qrLibraryPromise) {
+    qrLibraryPromise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = versionedAsset("js/vendor/qrcode.js");
+      script.async = true;
+      script.onload = () => {
+        if (typeof qrcode === "function") resolve();
+        else {
+          qrLibraryPromise = null;
+          script.remove();
+          reject(new Error("二维码组件没有正确初始化"));
+        }
+      };
+      script.onerror = () => {
+        qrLibraryPromise = null;
+        script.remove();
+        reject(new Error("二维码组件加载失败"));
+      };
+      document.head.appendChild(script);
+    });
+  }
+  return qrLibraryPromise;
 }
 
 /* 按字折行，最多 maxLines 行，超出的在行尾加省略号 */
@@ -1207,8 +1385,11 @@ function drawQR(ctx, text, x, y, size) {
 }
 
 async function drawShareCard(doc) {
-  await document.fonts.ready;
-  const logo = await loadLogo().catch(() => null);
+  const [, logo] = await Promise.all([
+    document.fonts.ready,
+    loadLogo().catch(() => null),
+    loadQRLibrary(),
+  ]);
 
   // A5 竖版（148:210），840×1188 ≈ A5 @144dpi，再 2x 导出保证清晰
   const W = 840;
@@ -1277,12 +1458,9 @@ async function drawShareCard(doc) {
 
   const meta = isSection(doc)
     ? `${(doc.children || []).length} 个子章节`
-    : [
-        `第 ${state.leafOrder.get(doc.nodeToken)} / ${state.counts.docs} 篇`,
-        doc.content ? `约 ${Math.max(1, Math.round(doc.content.length / 380))} 分钟` : "",
-      ]
-        .filter(Boolean)
-        .join(" · ");
+    : doc.content
+    ? `约 ${Math.max(1, Math.round(doc.content.length / 380))} 分钟`
+    : "";
 
   const infoMid = qrY + qrSize / 2;
   ctx.fillStyle = "#232323";
@@ -1290,7 +1468,7 @@ async function drawShareCard(doc) {
   ctx.fillText(hasQR ? "扫码阅读本篇" : "豆包工作蓝皮书", PAD, infoMid - 24);
   ctx.fillStyle = "#a7a7a7";
   ctx.font = font("400 22px");
-  ctx.fillText(`豆包工作蓝皮书 · ${meta}`, PAD, infoMid + 24);
+  ctx.fillText(`豆包工作蓝皮书${meta ? ` · ${meta}` : ""}`, PAD, infoMid + 24);
 
   return canvas;
 }
@@ -1300,13 +1478,20 @@ async function openShareBox(doc) {
     sharebox = document.createElement("div");
     sharebox.className = "sharebox";
     sharebox.dataset.open = "false";
+    sharebox.dataset.state = "idle";
     sharebox.innerHTML = `
-      <div class="sharebox__panel">
-        <img class="sharebox__img" alt="分享卡片" />
+      <div class="sharebox__panel" tabindex="-1">
+        <div class="sharebox__preview">
+          <img class="sharebox__img" alt="" />
+          <div class="sharebox__loading" aria-hidden="true">
+            <span class="sharebox__spinner"></span>
+            <span>正在绘制卡片</span>
+          </div>
+        </div>
         <div class="sharebox__row">
-          <p class="sharebox__hint">也可以右键 / 长按图片直接拷贝</p>
+          <p class="sharebox__status" role="status" aria-live="polite">准备生成分享卡片</p>
           <span class="sharebox__actions">
-            <button class="chip" type="button" data-card-download>下载卡片</button>
+            <button class="chip" type="button" data-card-download disabled>下载卡片</button>
             <button class="chip" type="button" data-card-link>复制链接</button>
           </span>
         </div>
@@ -1337,17 +1522,40 @@ async function openShareBox(doc) {
     document.body.appendChild(sharebox);
   }
 
-  const canvas = await drawShareCard(doc);
-  shareCard = { url: canvas.toDataURL("image/png"), name: `${doc.title} · 豆包工作蓝皮书.png` };
-  sharebox.querySelector(".sharebox__img").src = shareCard.url;
+  const generation = ++shareGeneration;
+  const image = sharebox.querySelector(".sharebox__img");
+  const status = sharebox.querySelector(".sharebox__status");
+  const download = sharebox.querySelector("[data-card-download]");
+  const actions = sharebox.querySelector(".sharebox__actions");
+
   sharebox.__prevFocus = document.activeElement;
   sharebox.dataset.open = "true";
+  sharebox.dataset.state = "loading";
+  image.removeAttribute("src");
+  image.alt = "";
+  status.textContent = "正在生成分享卡片与二维码…";
+  download.disabled = true;
+  actions.querySelector("[data-card-share]")?.remove();
   document.body.classList.add("is-locked");
-  sharebox.querySelector("[data-card-download]")?.focus();
+  sharebox.querySelector(".sharebox__panel")?.focus();
+
+  try {
+    const canvas = await drawShareCard(doc);
+    if (generation !== shareGeneration) return;
+    shareCard = { url: canvas.toDataURL("image/png"), name: `${doc.title} · 豆包工作蓝皮书.png` };
+    image.src = shareCard.url;
+    image.alt = `${doc.title}分享卡片，右下角含阅读二维码`;
+    sharebox.dataset.state = "ready";
+    status.textContent = "二维码已生成，可下载图片或复制链接";
+    download.disabled = false;
+  } catch (error) {
+    if (generation !== shareGeneration) return;
+    sharebox.dataset.state = "error";
+    status.textContent = "卡片生成失败，请使用复制链接分享";
+    return;
+  }
 
   // 手机上补一颗「系统分享」，把卡片图连标题一起交给系统面板
-  const actions = sharebox.querySelector(".sharebox__actions");
-  actions.querySelector("[data-card-share]")?.remove();
   if (matchMedia("(pointer: coarse)").matches && navigator.share) {
     const button = document.createElement("button");
     button.className = "chip";
@@ -1754,15 +1962,27 @@ function openSearch() {
   if (!dom.search) return;
   dom.search.__prevFocus = document.activeElement;
   dom.search.dataset.open = "true";
+  dom.searchInput.setAttribute("aria-expanded", "true");
   document.body.classList.add("is-locked");
   dom.searchInput.value = "";
   renderSearchResults([]);
   dom.searchInput.focus();
+  if (!state.fullContentReady) {
+    ensureFullContent()
+      .then(() => {
+        if (!isSearchOpen()) return;
+        const query = dom.searchInput.value;
+        const terms = query.trim().split(/\s+/).filter(Boolean);
+        renderSearchResults(terms.length ? searchDocs(query) : [], terms);
+      })
+      .catch(() => {});
+  }
 }
 
 function closeSearch() {
   if (!dom.search || dom.search.dataset.open !== "true") return;
   dom.search.dataset.open = "false";
+  dom.searchInput.setAttribute("aria-expanded", "false");
   document.body.classList.remove("is-locked");
   dom.searchInput.blur();
   if (dom.search.__prevFocus?.isConnected) dom.search.__prevFocus.focus();
@@ -1779,7 +1999,7 @@ function renderSearchResults(results, terms = []) {
   dom.searchResults.innerHTML = results
     .map(
       ({ entry, snippet }, i) => `
-        <li class="search__item" role="option" aria-selected="${i === 0}" data-token="${entry.token}">
+        <li class="search__item" id="search-result-${i}" role="option" aria-selected="${i === 0}" data-token="${entry.token}">
           <p class="search__item-title">
             ${highlight(entry.title, terms)}${
         entry.part ? `<span class="search__item-part">${escapeHtml(entry.part)}</span>` : ""
@@ -1789,13 +2009,21 @@ function renderSearchResults(results, terms = []) {
         </li>`
     )
     .join("");
+  if (results.length) dom.searchInput.setAttribute("aria-activedescendant", "search-result-0");
+  else dom.searchInput.removeAttribute("aria-activedescendant");
 
   const query = dom.searchInput.value.trim();
   dom.searchHint.textContent = !query
-    ? `↑↓ 选择 · 回车打开 · 共 ${state.counts?.docs ?? ""} 篇可检索`
+    ? state.fullContentReady
+      ? `↑↓ 选择 · 回车打开 · 共 ${state.counts?.docs ?? ""} 篇可检索`
+      : `正文索引加载中 · 当前可搜索 ${state.counts?.docs ?? ""} 篇标题与摘要`
     : results.length
-    ? `${results.length} 条结果${results.length === 20 ? "（只显示前 20 条）" : ""}`
-    : "没有找到，换个关键词试试";
+    ? `${results.length} 条结果${results.length === 20 ? "（只显示前 20 条）" : ""}${
+        state.fullContentReady ? "" : " · 正文索引加载中"
+      }`
+    : state.fullContentReady
+    ? "没有找到，换个关键词试试"
+    : "正文索引加载中，稍后会自动补全结果";
 }
 
 function setActiveResult(next) {
@@ -1803,6 +2031,7 @@ function setActiveResult(next) {
   if (!items.length) return;
   searchState.active = (next + items.length) % items.length;
   items.forEach((item, i) => item.setAttribute("aria-selected", String(i === searchState.active)));
+  dom.searchInput.setAttribute("aria-activedescendant", items[searchState.active].id);
   items[searchState.active].scrollIntoView({ block: "nearest" });
 }
 
@@ -1909,6 +2138,10 @@ function initKeyboard() {
       return;
     }
 
+    // 弹层、视频和可编辑控件应接收自己的方向键，不触发文章翻页。
+    if (document.body.classList.contains('is-locked') ||
+        document.activeElement?.closest('video, select, [contenteditable="true"], [role="slider"]')) return;
+
     if (state.route.name !== "doc") return;
     const index = state.flat.findIndex((item) => shortId(item.doc.nodeToken) === state.route.id);
     if (index < 0) return;
@@ -1936,6 +2169,7 @@ function initKeyboard() {
 async function boot() {
   loadRead();
   loadResume();
+  initTheme();
   initKeyboard();
   initPinbar();
   initAnchors();
@@ -1956,11 +2190,15 @@ async function boot() {
   window.addEventListener("scroll", () => positionGroupBox(groupboxTrigger), { passive: true });
 
   try {
-    const response = await fetch(versionedAsset("content/site-content.json"), {
-      cache: "no-cache",
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    buildModel(await response.json());
+    if (parseHash().name === "doc") {
+      await ensureFullContent();
+    } else {
+      try {
+        buildModel(await fetchPayload("site-index.json"));
+      } catch (indexError) {
+        await ensureFullContent();
+      }
+    }
   } catch (error) {
     showLoadError(error);
     return;
@@ -1970,10 +2208,11 @@ async function boot() {
   if (dom.searchHint)
     dom.searchHint.textContent = `↑↓ 选择 · 回车打开 · 共 ${state.counts.docs} 篇可检索`;
 
-  window.addEventListener("hashchange", render);
+  window.addEventListener("hashchange", handleRouteChange);
   render();
   dom.app.hidden = false;
   document.body.classList.remove("is-booting");
+  if (!state.fullContentReady) scheduleFullContent();
 }
 
 boot();

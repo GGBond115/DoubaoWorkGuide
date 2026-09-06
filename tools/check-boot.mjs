@@ -18,7 +18,7 @@ try {
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
   await page.setRequestInterception(true);
   page.on("request", (request) => {
-    if (new URL(request.url()).pathname.endsWith("/content/site-content.json")) {
+    if (new URL(request.url()).pathname.endsWith("/content/site-index.json")) {
       setTimeout(() => request.continue(), 1000);
       return;
     }
@@ -35,10 +35,10 @@ try {
     appHidden: document.getElementById("app")?.hidden,
   }));
 
-  assert.equal(loading.booting, true, "JSON 未完成时页面应保持启动状态");
-  assert.equal(loading.bodyVisibility, "hidden", "JSON 未完成时整页应隐藏，避免蓝色封面频闪");
+  assert.equal(loading.booting, true, "轻量索引未完成时页面应保持启动状态");
+  assert.equal(loading.bodyVisibility, "hidden", "轻量索引未完成时整页应隐藏，避免蓝色封面频闪");
   assert.equal(loading.coverCount, 0, "首个 HTML 不应预绘静态蓝色封面");
-  assert.equal(loading.appHidden, true, "JSON 未完成时应用内容不应露出");
+  assert.equal(loading.appHidden, true, "轻量索引未完成时应用内容不应露出");
 
   await page.waitForFunction(
     () => !document.body.classList.contains("is-booting") && document.querySelectorAll(".bookcover").length === 1,

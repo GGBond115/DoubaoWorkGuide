@@ -4,12 +4,11 @@
 
    内文视觉系统的全部约定：
 
-   · 画布纯白 #ffffff，正文 #232323，次要 rgba(35,35,35,.4)，
-     最轻 #c8c8c8，发丝线 rgba(0,0,0,.1)
+   · 日间白底与高对比灰字，夜间蓝黑画布与浅蓝文字
    · 单一字体 Inter，三档字号 40 / 16 / 14，
      行高 1.6 / 1.8 / 1.43，字重只用 400 / 500 / 600
-   · 完全扁平：无阴影、无底色分层，层级只靠亮度与留白
-   · 唯一色彩是蓝色渐变小方块，仅作行内标记
+   · 留白、描边与轻量面板共同区分信息层级
+   · 品牌色统一由豆包 Logo 的五档蓝色派生
    ============================================================ */
 
 /* ------------------------------------------------------------
@@ -177,18 +176,37 @@ a {
   --surface: #ffffff;
   --black: #000000; /* editorial-black：正文行文 */
   --ink: #232323; /* charcoal-ink：标题与强调段 */
-  --ink-muted: #a7a7a7; /* soft-graphite：次要文本 */
-  --ink-faded: #c8c8c8; /* faded-pencil：最轻的声音 / 点亮前 */
+  --ink-muted: #6f6f6f; /* 辅助文字在桌面与移动端都保持可读 */
+  --ink-faded: #767676;
   /* 发丝线用透明黑：rgba(0,0,0,.1) 叠在白面上恰好是 #e6e6e6，
      在任何底色上都仍然可见 */
   --hairline: rgba(0, 0, 0, 0.1);
   --hairline-strong: rgba(0, 0, 0, 0.18);
   --wash: rgba(0, 0, 0, 0.04);
-  /* 站内唯一的色彩，来自豆包标志本身。
-     用途克制：标志、行内链接、重点下划、小节记号，不做大面积填充 */
-  --brand-blue: #1a2ff7;
-  --brand-cyan: #00c8fb;
+  --hover-border: rgba(0, 0, 0, 0.3);
+  --hover-wash: rgba(0, 0, 0, 0.025);
+  /* 全站唯一的品牌色源：豆包 Logo 五阶蓝。
+     组件只引用语义别名，后续不再各自维护近似蓝、紫蓝或藏青。 */
+  --doubao-deep: #0863f5;
+  --doubao-primary: #1674fc;
+  --doubao-mid: #429afc;
+  --doubao-light: #79c4fc;
+  --doubao-highlight: #c6eefc;
+  --brand-ink: #06152f;
+  /* 白底链接与白字按钮使用深蓝，以保持至少 4.5:1 的正文对比度。 */
+  --brand-blue: var(--doubao-deep);
+  --brand-fill: var(--doubao-deep);
+  --brand-cyan: var(--doubao-light);
   --grad-brand: linear-gradient(var(--brand-cyan), var(--brand-blue));
+  --cover-blue-deep: var(--doubao-deep);
+  --cover-blue: var(--doubao-primary);
+  --cover-blue-light: var(--doubao-light);
+  --cover-blue-tail: var(--doubao-mid);
+  --cover-highlight: var(--doubao-highlight);
+  --cover-ink: var(--doubao-deep);
+  --cover-accent: var(--doubao-mid);
+  --cover-cyan: var(--doubao-highlight);
+  --cover-foreground: #ffffff;
   /* 荧光笔：只压在文字下沿，不碰行距 */
   --marker: color-mix(in srgb, var(--brand-cyan) 20%, transparent);
 
@@ -247,11 +265,36 @@ a {
   --dur-panel: 260ms;
 }
 
+:root[data-theme-effective="dark"] {
+  color-scheme: dark;
+  /* 蓝黑画布由 Logo 深蓝压暗而来；表面与文字也保持冷蓝倾向。 */
+  --canvas: var(--brand-ink);
+  --surface: #0b2042;
+  --black: #f4f8ff;
+  --ink: #dfedff;
+  --ink-muted: #a7c1e3;
+  --ink-faded: #7f9fc9;
+  --hairline: color-mix(in srgb, var(--doubao-highlight) 14%, transparent);
+  --hairline-strong: color-mix(in srgb, var(--doubao-highlight) 26%, transparent);
+  --wash: color-mix(in srgb, var(--doubao-light) 8%, transparent);
+  --hover-border: color-mix(in srgb, var(--doubao-highlight) 38%, transparent);
+  --hover-wash: color-mix(in srgb, var(--doubao-light) 7%, transparent);
+  --brand-blue: var(--doubao-light);
+  --brand-fill: var(--doubao-deep);
+  --brand-cyan: var(--doubao-highlight);
+  --shadow-subtle: rgba(0, 0, 0, 0.36) 0px 1px 1px -0.5px,
+    rgba(0, 0, 0, 0.32) 0px 3px 3px -1.5px, rgba(0, 0, 0, 0.28) 0px 6px 6px -3px,
+    rgba(0, 0, 0, 0.24) 0px 12px 12px -6px, rgba(0, 0, 0, 0.2) 0px 24px 24px -12px;
+}
+
 /* 手机屏幕受环境光和系统网页容器影响更大，辅助信息不能沿用桌面端的
    铅笔灰。小屏统一提升到至少 3:1，同时收紧页面边距。 */
 @media (max-width: 720px) {
   :root {
     --pad-x: 16px;
+  }
+
+  :root:not([data-theme-effective="dark"]) {
     --ink-muted: #6f6f6f;
     --ink-faded: #767676;
   }
@@ -281,6 +324,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-wrap: break-word;
+  transition: background-color var(--dur-ui) var(--ease), color var(--dur-ui) var(--ease);
 }
 
 body.is-locked {
@@ -418,8 +462,8 @@ body.is-locked {
 
 .pill--ghost:hover {
   opacity: 1;
-  border-color: rgba(0, 0, 0, 0.3);
-  background: rgba(0, 0, 0, 0.025);
+  border-color: var(--hover-border);
+  background: var(--hover-wash);
 }
 
 .pill--ghost:active {
@@ -454,6 +498,36 @@ body.is-locked {
 
 .chip:active {
   transform: scale(0.97);
+}
+
+.theme-toggle {
+  min-width: 76px;
+  justify-content: center;
+}
+
+.theme-toggle__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  font-size: 15px;
+  line-height: 1;
+}
+
+@media (max-width: 720px) {
+  .theme-toggle {
+    min-width: 34px;
+    padding-inline: 9px !important;
+  }
+
+  .theme-toggle__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 
 .chip__sep {

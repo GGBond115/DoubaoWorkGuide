@@ -23,6 +23,23 @@ const page = await browser.newPage();
 await page.setViewport({ width, height: 1000 });
 await page.goto(`${ORIGIN}/${hash}`, { waitUntil: "networkidle2" });
 await page.waitForSelector("#app:not([hidden])", { timeout: 10000 }).catch(() => {});
+await new Promise((r) => setTimeout(r, 1800));
+// 依次走过整页，让 loading="lazy" 的媒体进入视口并完成解码；否则
+// fullPage 截图会把尚未滚到的图片拍成空白占位框。
+await page.evaluate(async () => {
+  const step = Math.max(500, Math.floor(innerHeight * 0.8));
+  for (let y = 0; y < document.documentElement.scrollHeight; y += step) {
+    window.scrollTo(0, y);
+    await new Promise((resolve) => setTimeout(resolve, 80));
+  }
+  window.scrollTo(0, 0);
+});
+await page
+  .waitForFunction(
+    () => [...document.images].every((img) => img.complete && img.naturalWidth > 0),
+    { timeout: 15000 }
+  )
+  .catch(() => {});
 await new Promise((r) => setTimeout(r, 700));
 await page.screenshot({ path: `tools/shots/${name}.png`, fullPage: true });
 const h = await page.evaluate(() => document.documentElement.scrollHeight);
